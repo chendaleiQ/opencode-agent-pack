@@ -23,7 +23,7 @@
 - `change-triage` 输出字段变更（增删改字段、语义重定义）
 - lane 体系重大变更（如新增/删除 lane，或判定逻辑重构）
 - tier 关键约束改变（如 finalApprovalTier 不再固定 top）
-- 单入口模型被破坏（不是 orchestrator 单入口）
+- 单入口模型被破坏（不是 leader 单入口）
 - 安装路径/默认行为发生不兼容变化
 
 ## 特定变更分级规则
@@ -43,7 +43,8 @@
 2. `change-triage` 输出格式符合当前版本规范
 3. `evals/rubric.md` 与规则一致
 4. README 与实际行为一致
-5. 安装脚本可在基础场景工作（project/global/custom）
+5. evals 与 verify / end-gate 说明保持一致
+6. 安装脚本可在基础场景工作（project/global/custom）
 
 ## 发布说明模板（建议）
 - 版本号：

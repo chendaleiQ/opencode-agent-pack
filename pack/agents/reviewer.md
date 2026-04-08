@@ -16,11 +16,16 @@
 - 检查 verify 结果
 - 检查 lane end-gate readiness
 - 可建议 lane/tier 升级
+- 直接消费 leader handoff，不重复 workflow routing
 
 ## Forbidden
 - 不直接改代码
 - 不直接宣布任务完成
 - 不越权更改系统规则
+- 不调用 `change-triage`
+- 不因 review 任务重新进入整套工作流技能
+- handoff 不清晰时回报升级建议，不自行扩张流程
+- 若存在外部技能系统的 subagent-stop 语义（如 `using-superpowers`），遵守该语义，不因“技能可能适用”覆盖 handoff
 
 ## Escalation Triggers
 任一命中则 mustEscalate=true：

@@ -18,6 +18,8 @@
 - touchesDestructiveAction: `false`
 - estimatedFiles: `1`
 - lane: `quick`
+- delegate: `true`
+- needsReviewer: `false`
 - analysisTier: `tier_fast`
 - executorTier: `tier_fast`
 - reviewTier: `tier_mid`
@@ -32,4 +34,5 @@
 
 ## 人工检查要点
 - 是否保持 investigation 边界
+- 是否优先只走 analyzer 的最小路径，而不是额外拉起 implementer/reviewer
 - 若中途发现敏感变更需求，是否升级 lane/tier

@@ -1,7 +1,10 @@
 # opencode-agent-pack
 
+[English](./README.md) | [简体中文](./README.zh-CN.md)
+
 Single-entry, auto-routed OpenCode Agent Pack.
-Install once, then only talk to one default strongest entry agent: `orchestrator`.
+Install once, then only talk to one default strongest entry agent: `leader`.
+The documented workflow routes triage, delegation, escalation, review, verification, and final closure through that single entry.
 
 ## What Problem This Solves
 Most multi-agent setups force users to manually decide:
@@ -10,9 +13,9 @@ Most multi-agent setups force users to manually decide:
 - whether a task is risky
 - whether to run fast path or strict path
 
-This pack removes that burden:
-- you give one task to `orchestrator`
-- system auto-runs triage, lane routing, tier routing, subagent dispatch, review/verify, escalation, and final closure
+This pack removes that burden at the workflow level:
+- you give one task to `leader`
+- the pack defines how triage, lane routing, tier routing, subagent dispatch, review/verify, escalation, and final closure should happen
 
 ## Core Positioning
 This is a **single-entry OpenCode Agent Pack with automatic lane+tier routing**.
@@ -23,7 +26,7 @@ It is **not**:
 - a multi-entry agent menu
 
 ## Why One Strongest Entry
-`orchestrator` (tier_top) owns all critical decisions:
+`leader` (tier_top) owns all critical decisions:
 - task interpretation
 - risk boundary judgment
 - lane choice
@@ -42,6 +45,16 @@ System triages every task into one lane:
 
 Sensitive hits (`auth/db schema/public api/destructive`) cannot stay low risk.
 
+## Quick Lane Is Minimal-Path
+`quick` is not a mandatory analyzer -> implementer -> reviewer chain.
+
+Instead, `leader` should pick only the smallest downstream path that matches the task:
+- quick implementation: `implementer`
+- quick investigation: `analyzer`
+- quick review: `reviewer`
+
+If a quick task needs multiple downstream roles or repeated back-and-forth to finish safely, it should escalate instead of pretending to stay lightweight.
+
 ## Tier Routing (Which Model Strength Is Used)
 Abstract tiers:
 - `tier_top`: strongest model (entry, triage interpretation, strict boundaries, final closure)
@@ -55,7 +68,23 @@ Default behavior:
 
 ## Why Low-Risk Tasks Are Delegated
 Because they are bounded, low-impact, and cheaper to execute quickly.
-The system still returns to `tier_top` for final closure.
+That does not mean every low-risk task should traverse the full workflow. The goal is minimal safe delegation, then return to `tier_top` for final closure.
+
+## Subagent Behavior
+Only `leader` should run workflow-routing logic such as `change-triage`.
+
+Delegated subagents should:
+- consume the handoff directly
+- stay within their role
+- avoid rerunning triage or re-entering heavyweight workflow skills for a local task
+- report back for escalation when the handoff or boundary is unclear
+
+## External Skill Integration
+When used together with external skill systems (including superpowers-style setups):
+- this pack remains the workflow source of truth for lane/tier/escalation/closure
+- external skills should be treated as capability extension, not workflow replacement
+- delegated subagents must honor handoff boundaries first; do not re-enter heavyweight skill chains
+- if the external system defines subagent-stop behavior (for example `using-superpowers`), subagents should follow it and continue in-role
 
 ## Why High-Risk Tasks Are Not Started by Weak Model
 High-risk or sensitive tasks require strong boundary control from the start:
@@ -65,31 +94,19 @@ High-risk or sensitive tasks require strong boundary control from the start:
 
 ## Install
 
-### Option 1: Project Install (recommended)
-Install into current project as `.opencode/`:
+### Global Install (default)
+Installs into `~/.config/opencode/` by default. No flags needed:
 
 ```bash
-bash install.sh --project
+bash install.sh
 ```
 
 PowerShell:
 ```powershell
-.\install.ps1 -Project
+.\install.ps1
 ```
 
-### Option 2: Global Install
-Install into `~/.config/opencode/`:
-
-```bash
-bash install.sh --global
-```
-
-PowerShell:
-```powershell
-.\install.ps1 -Global
-```
-
-### Option 3: Custom Target
+### Custom Target
 Install pack to any directory:
 
 ```bash
@@ -102,16 +119,88 @@ PowerShell:
 ```
 
 ### Safe Behavior
-- installer is conservative by default
+- installer defaults to global install (`~/.config/opencode/`)
+- project-level install is not supported
 - if target exists and is non-empty, install aborts unless `--force` / `-Force`
+- `--force` / `-Force` performs a clean rebuild (removes target contents before install)
+- `--force` / `-Force` preserves known user config files: `opencode.json`, `settings.json`
 - no destructive reset operations
+
+### Provider Allowlist
+During install, the pack configures a pack-scoped provider allowlist in `settings.json`:
+- provider candidates are detected from local OpenCode state
+- provider selection defaults to all detected local providers, so pressing Enter accepts the full set
+- the selected policy is stored under `opencodeAgentPack.allowedProviders`
+- if no providers are detected, the installer leaves the existing allowlist unchanged unless you explicitly confirm writing an empty list
+- after install, use `/providers` to review or reconfigure the allowed routing providers
 
 ## Use
 
 After install, user workflow is intentionally simple:
 1. ask task directly (or use `/task`)
-2. system handles triage/routing/escalation automatically
-3. `orchestrator` provides final closure summary
+2. `leader` handles triage/routing/escalation within the documented workflow
+3. `leader` provides the final closure summary after review/end-gate checks
+4. use `/providers` whenever you want to update the pack-scoped provider allowlist
+
+## Optional Tool: Subagent Model Router
+This pack includes an optional tool at `pack/tools/subagent_model_router.py`.
+
+What it does:
+- takes triage JSON as input
+- returns recommended subagent dispatch order
+- returns model choice per role based on tier (`tier_fast|tier_mid|tier_top`)
+- supports provider-aware model mapping (default: `openai`)
+- can auto-pick from available models list
+- can auto-detect provider/models from local opencode config
+- can auto-discover provider-available models and build tier candidates
+- honors the pack-scoped provider allowlist stored in `settings.json`
+- falls back inside the allowlist if the active provider is disallowed
+- treats an explicit empty `allowedProviders: []` as deny-all until you reconfigure it
+- when `--config-path` points at a custom `opencode.json`, the router reads the sibling `settings.json` from that same directory
+
+Example:
+```bash
+PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
+    --auto-detect-config \
+    --discover-models \
+    --provider openai \
+    --leader-model gpt-5.4 \
+    --available-models-json '["gpt-5.4","gpt-5.4-mini","gpt-5.3"]' \
+    --triage-json '{"taskType":"refactor","lane":"quick","analysisTier":"tier_fast","executorTier":"tier_fast","reviewTier":"tier_mid","needsReviewer":false}'
+```
+
+In this example, quick tasks will prefer `gpt-5.4-mini`; if unavailable, they fall back to `gpt-5.3`.
+If the active provider is not allowed, the router warns and falls back to the first usable provider inside the allowlist instead of routing outside policy.
+
+Custom-target example:
+```bash
+PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
+    --config-path /tmp/my-opencode-pack/opencode.json \
+    --auto-detect-config \
+    --triage-json '{"taskType":"review","lane":"quick","analysisTier":"tier_mid","executorTier":"tier_mid","reviewTier":"tier_mid","needsReviewer":false}'
+```
+
+With `--config-path`, provider policy is read from `/tmp/my-opencode-pack/settings.json`.
+
+OpenAI model discovery (optional):
+```bash
+PYTHONPATH=. OPENAI_API_KEY=... python3 -m pack.tools.subagent_model_router \
+    --auto-detect-config \
+    --discover-models \
+    --leader-model gpt-5.4 \
+    --triage-json '{"taskType":"feature","lane":"strict","analysisTier":"tier_top","executorTier":"tier_mid","reviewTier":"tier_top","needsReviewer":true}'
+```
+
+Output also includes:
+- `provider`
+- `availableModelsCount`
+- `tierCandidates` (auto-graded buckets for fast/mid/top)
+- `warnings` (e.g. missing API key for provider discovery)
+
+Override model mapping with environment variables:
+- `OPENCODE_MODEL_TIER_FAST`
+- `OPENCODE_MODEL_TIER_MID`
+- `OPENCODE_MODEL_TIER_TOP`
 
 You do **not** need to:
 - switch models manually
@@ -120,7 +209,7 @@ You do **not** need to:
 - pick process lane manually
 
 ## Design Principles (Current Version)
-- single entry (`orchestrator`)
+- single entry (`leader`)
 - strongest model controls decisions and closure
 - triage before implementation
 - lane routing + tier routing
@@ -128,15 +217,24 @@ You do **not** need to:
 - explicit end-gates by lane
 - unified execution summary at close
 
+## Verification and End-Gates
+- work should not close on implementation output alone
+- reviewer output remains part of standard/guarded/strict flow, and is added to quick when review is actually needed
+- verification evidence can be command output or an explicit manual check when no formal verify command exists
+- when verification is manual, the agent should say exactly what was checked
+- `leader` should only close work after the relevant end-gate is satisfied
+
 ## New in V5: Evals and Maintenance
-Project now includes `evals/` for stable triage/lane/tier assessment.
+Project includes `evals/` as a manual assessment kit for triage/lane/tier behavior.
 
 How to use evals:
 1. Pick a case in `evals/cases/`
-2. Run triage (and flow when needed)
-3. Compare results with expected outputs in case file
+2. Run triage (and the rest of the flow when needed) manually
+3. Compare the observed outputs with the expected outputs in the case file
 4. Score with `evals/rubric.md`
-5. If misclassified, fix using `MAINTAINING.md`
+5. Record what you checked, then use `MAINTAINING.md` if a fix is needed
+
+The repository does not add CI automation for these evals by default; they are intended to be run and reviewed manually.
 
 ### Why high-risk miss rate matters most
 Primary metric is **low high-risk miss rate**, not overall accuracy.
@@ -178,6 +276,7 @@ See `MAINTAINING.md` for full process.
 ```text
 opencode-agent-pack/
 ├─ README.md
+├─ README.zh-CN.md
 ├─ LICENSE
 ├─ install.sh
 ├─ install.ps1

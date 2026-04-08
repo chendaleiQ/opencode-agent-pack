@@ -8,6 +8,11 @@
 4. 升级机制触发有效性
 5. 结束门槛执行一致性
 
+## 使用方式
+- 本 rubric 默认用于人工评估
+- 评分时应记录实际输出，以及对应的命令验证或人工检查说明
+- 若仓库中没有正式 verify 命令，不得因为“看起来没问题”而跳过记录
+
 ## 核心原则
 - **最高优先级指标：高风险漏判率低**
 - 总体准确率是次级指标
@@ -21,6 +26,7 @@
 - risk 是否符合影响面和敏感项
 - sensitive flags 是否正确识别
 - estimatedFiles 是否明显失真
+- chat-only 请求是否被正确识别为直答（不进入 triage）
 
 判定：
 - 完全符合：A-pass
@@ -42,6 +48,7 @@
 检查项：
 - finalApprovalTier 是否始终 tier_top
 - low-value 局部工作是否可下放
+- quick 是否走最小必要角色，而不是固定全链路
 - strict 是否避免 tier_fast 主导
 - guarded 是否有 top 边界说明和最终批准
 
@@ -56,6 +63,7 @@
 - verify 失败是否升级
 - scope 扩大是否升级
 - implementer 不稳定是否触发升配
+- 是否识别并阻断外部技能系统导致的 subagent 流程回流
 
 判定：
 - 及时升级：D-pass
@@ -67,6 +75,8 @@
 - lane 对应结束门槛是否被满足
 - strict 下 reviewer 明示不可结束时是否阻止收口
 - 是否输出统一执行摘要
+- verify 证据是否被明确说明（命令输出或人工检查）
+- delegated subagent 是否直接消费 handoff，而非重复 triage / 工作流分流
 
 判定：
 - 一致执行：E-pass
@@ -79,16 +89,20 @@
 3. strict 在 reviewer 明示不可结束时仍结束
 4. finalApprovalTier 非 tier_top
 5. 明确应升级但未升级
+6. 该走流程的请求被误判为 chat-only 直答（偷懒）
 
 ## 可接受错误（可排期优化）
 1. 低风险任务被保守升级（效率损失）
 2. tier 使用偏保守导致成本略高
-3. 描述层面的摘要不够精炼（不影响安全）
+3. quick 任务安全完成但多走了一个非必要角色
+4. 描述层面的摘要不够精炼（不影响安全）
 
 ## 建议结果记录格式
 - case 名称：
 - A/B/C/D/E 评分：
 - 是否高风险漏判：yes/no
 - 是否过度升级：yes/no
+- 是否发生流程回流：yes/no
+- verify 证据：commands/manual/none（写明内容）
 - 修正建议：
 - 版本建议（PATCH/MINOR/MAJOR）：

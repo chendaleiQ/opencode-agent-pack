@@ -18,6 +18,8 @@
 - touchesDestructiveAction: `false`
 - estimatedFiles: `1`
 - lane: `quick`
+- delegate: `true`
+- needsReviewer: `false`
 - analysisTier: `tier_fast`
 - executorTier: `tier_fast`
 - reviewTier: `tier_mid`
@@ -32,4 +34,5 @@
 
 ## 人工检查要点
 - 是否错误识别为 public API 改动
-- quick 结束门槛是否满足（范围、摘要、review）
+- 是否只走最小必要实现路径，而不是 analyzer + implementer + reviewer 全链路
+- 是否保留简明 verify/人工检查说明与 quick 结束门槛
