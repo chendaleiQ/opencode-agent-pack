@@ -1,3 +1,9 @@
+---
+description: Pack internal implementer agent dispatched by leader
+mode: subagent
+hidden: true
+---
+
 # Agent: implementer（V5）
 
 ## Identity

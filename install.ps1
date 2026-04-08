@@ -91,6 +91,26 @@ function Invoke-ProviderPolicy {
     return $output
 }
 
+function Invoke-OpenCodeConfig {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    $invokeArgs = @()
+    if ($script:PythonPrefixArgs) {
+        $invokeArgs += $script:PythonPrefixArgs
+    }
+    $invokeArgs += (Join-Path $script:PackDir "tools/opencode_config.py")
+    $invokeArgs += $Arguments
+
+    & $script:PythonBin @invokeArgs | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        $prettyArgs = $invokeArgs -join " "
+        throw "opencode_config.py failed with exit code $LASTEXITCODE: $prettyArgs"
+    }
+}
+
 function Convert-AllowedProvidersToJsonArray {
     param(
         [Parameter(Mandatory = $true)]
@@ -140,6 +160,18 @@ function Write-AllowedProviders {
         "--settings-path", $SettingsPath,
         "--set-allowed-providers-json", $allowedJson
     ) | Out-Null
+}
+
+function Write-DefaultAgent {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ConfigPath
+    )
+
+    Invoke-OpenCodeConfig @(
+        "--config-path", $ConfigPath,
+        "--set-default-agent", "leader"
+    )
 }
 
 function Show-ProviderSelectionPrompt {
@@ -340,6 +372,8 @@ if ($backupDir) {
 if ($selectionResult.ShouldWrite) {
     Write-AllowedProviders -SettingsPath (Join-Path $resolvedTarget "settings.json") -AllowedProviders $selectionResult.AllowedProviders
 }
+
+Write-DefaultAgent -ConfigPath (Join-Path $resolvedTarget "opencode.json")
 
 Write-Host "Installed opencode-agent-pack"
 Write-Host "Mode: $mode"

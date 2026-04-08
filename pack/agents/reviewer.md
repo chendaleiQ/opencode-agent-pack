@@ -1,3 +1,9 @@
+---
+description: Pack internal reviewer agent dispatched by leader
+mode: subagent
+hidden: true
+---
+
 # Agent: reviewer（V5）
 
 ## Identity

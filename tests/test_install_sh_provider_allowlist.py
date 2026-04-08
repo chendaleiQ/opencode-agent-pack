@@ -7,6 +7,43 @@ from pathlib import Path
 
 
 class InstallShProviderAllowlistTests(unittest.TestCase):
+    def test_non_interactive_install_sets_default_agent_and_preserves_existing_config(
+        self,
+    ):
+        repo_root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            config_dir = home / ".config" / "opencode"
+            data_dir = home / ".local" / "share" / "opencode"
+            cache_dir = home / ".cache" / "opencode"
+            config_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            cache_dir.mkdir(parents=True)
+
+            (config_dir / "opencode.json").write_text(
+                json.dumps({"provider": "openai", "model": "gpt-5.4"}),
+                encoding="utf-8",
+            )
+
+            subprocess.run(
+                ["bash", "install.sh", "--force"],
+                cwd=repo_root,
+                env={**os.environ, "HOME": str(home)},
+                stdin=subprocess.DEVNULL,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+
+            self.assertEqual(
+                json.loads((config_dir / "opencode.json").read_text(encoding="utf-8")),
+                {
+                    "provider": "openai",
+                    "model": "gpt-5.4",
+                    "default_agent": "leader",
+                },
+            )
+
     def test_non_interactive_install_writes_default_all_allowed_providers(self):
         repo_root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as tmp:
@@ -61,7 +98,9 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
 
             self.assertIn("Installed opencode-agent-pack", completed.stdout)
 
-            settings = json.loads((config_dir / "settings.json").read_text(encoding="utf-8"))
+            settings = json.loads(
+                (config_dir / "settings.json").read_text(encoding="utf-8")
+            )
             self.assertEqual(settings["theme"], "solarized")
             self.assertEqual(settings["opencodeAgentPack"]["otherSetting"], True)
             self.assertEqual(
@@ -70,10 +109,16 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
             )
             self.assertEqual(
                 json.loads((config_dir / "opencode.json").read_text(encoding="utf-8")),
-                {"provider": "openai", "model": "gpt-5.4"},
+                {
+                    "provider": "openai",
+                    "model": "gpt-5.4",
+                    "default_agent": "leader",
+                },
             )
 
-    def test_non_interactive_install_with_no_detected_providers_preserves_existing_allowlist(self):
+    def test_non_interactive_install_with_no_detected_providers_preserves_existing_allowlist(
+        self,
+    ):
         repo_root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
@@ -105,11 +150,54 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
             )
 
             self.assertIn("Installed opencode-agent-pack", completed.stdout)
-            settings = json.loads((config_dir / "settings.json").read_text(encoding="utf-8"))
+            settings = json.loads(
+                (config_dir / "settings.json").read_text(encoding="utf-8")
+            )
             self.assertEqual(settings["theme"], "solarized")
             self.assertEqual(
                 settings["opencodeAgentPack"]["allowedProviders"],
                 ["openrouter"],
+            )
+
+    def test_repeated_non_interactive_install_keeps_default_agent_stable(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            config_dir = home / ".config" / "opencode"
+            data_dir = home / ".local" / "share" / "opencode"
+            cache_dir = home / ".cache" / "opencode"
+            config_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True)
+            cache_dir.mkdir(parents=True)
+
+            (config_dir / "opencode.json").write_text(
+                json.dumps({"provider": "openai"}),
+                encoding="utf-8",
+            )
+
+            env = {**os.environ, "HOME": str(home)}
+            subprocess.run(
+                ["bash", "install.sh", "--force"],
+                cwd=repo_root,
+                env=env,
+                stdin=subprocess.DEVNULL,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            subprocess.run(
+                ["bash", "install.sh", "--force"],
+                cwd=repo_root,
+                env=env,
+                stdin=subprocess.DEVNULL,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+
+            self.assertEqual(
+                json.loads((config_dir / "opencode.json").read_text(encoding="utf-8")),
+                {"provider": "openai", "default_agent": "leader"},
             )
 
 

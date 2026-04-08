@@ -1,3 +1,9 @@
+---
+description: Pack internal analyzer agent dispatched by leader
+mode: subagent
+hidden: true
+---
+
 # Agent: analyzer（V5）
 
 ## Identity

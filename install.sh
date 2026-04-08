@@ -60,6 +60,10 @@ provider_policy() {
   "$PYTHON_BIN" "${SCRIPT_DIR}/pack/tools/provider_policy.py" "$@"
 }
 
+opencode_config() {
+  "$PYTHON_BIN" "${SCRIPT_DIR}/pack/tools/opencode_config.py" "$@"
+}
+
 detect_provider_candidates() {
   provider_policy \
     --config-dir "${HOME}/.config/opencode" \
@@ -74,6 +78,13 @@ write_allowed_providers() {
   provider_policy \
     --settings-path "$settings_path" \
     --set-allowed-providers-json "$allowed_json"
+}
+
+write_default_agent() {
+  local config_path="$1"
+  opencode_config \
+    --config-path "$config_path" \
+    --set-default-agent leader
 }
 
 print_provider_selection_prompt() {
@@ -236,6 +247,8 @@ fi
 if [ "$SHOULD_WRITE_ALLOWED_PROVIDERS" = "true" ]; then
   write_allowed_providers "${TARGET}/settings.json" "$SELECTED_PROVIDERS_JSON"
 fi
+
+write_default_agent "${TARGET}/opencode.json"
 
 echo "Installed opencode-agent-pack"
 echo "Mode: $MODE"
