@@ -16,13 +16,7 @@ from pack.tools.provider_policy import (
 )
 
 
-PREFERRED_MODELS = {
-    "openai": {
-        "tier_top": ["gpt-5.4", "gpt-5.3", "gpt-5"],
-        "tier_mid": ["gpt-5.3", "gpt-5.4-mini", "gpt-5-mini"],
-        "tier_fast": ["gpt-5.4-mini", "gpt-5-mini", "gpt-5.3"],
-    }
-}
+PREFERRED_MODELS: Dict[str, Dict[str, List[str]]] = {}
 
 FAST_HINTS = [
     "mini",
@@ -252,7 +246,7 @@ def detect_provider(config_obj: Dict[str, Any], provider_arg: str) -> str:
     if found:
         return found[0].lower()
 
-    return "openai"
+    return ""
 
 
 def detect_config_provider(config_obj: Dict[str, Any]) -> str:
@@ -379,7 +373,10 @@ def resolve_effective_provider(
     if effective_allowed:
         return effective_allowed[0], warnings
 
-    return current_provider or "openai", warnings
+    if current_provider:
+        return current_provider, warnings
+
+    raise ValueError("no provider detected; configure a provider in opencode.json or pass --provider")
 
 
 def ensure_provider_has_usable_models(
@@ -396,7 +393,9 @@ def build_model_map(
     leader_model: str,
 ) -> Dict[str, str]:
     overrides = _env_tier_overrides()
-    preferred = PREFERRED_MODELS.get(provider, PREFERRED_MODELS["openai"])
+    preferred = PREFERRED_MODELS.get(provider, {})
+
+    tier_candidates = build_tier_candidates(provider, available_models)
 
     def pick(tier: str, fallback: str) -> str:
         if overrides.get(tier):
@@ -404,13 +403,19 @@ def build_model_map(
         for candidate in preferred.get(tier, []):
             if candidate in available_models:
                 return candidate
+        # fallback to first heuristic candidate
+        if tier_candidates.get(tier):
+            return tier_candidates[tier][0]
         return fallback
 
-    top_fallback = leader_model or preferred["tier_top"][0]
+    top_fallback = leader_model or (tier_candidates["tier_top"][0] if tier_candidates.get("tier_top") else "")
+    mid_fallback = tier_candidates["tier_mid"][0] if tier_candidates.get("tier_mid") else top_fallback
+    fast_fallback = tier_candidates["tier_fast"][0] if tier_candidates.get("tier_fast") else mid_fallback
+
     model_map = {
         "tier_top": pick("tier_top", top_fallback),
-        "tier_mid": pick("tier_mid", preferred["tier_mid"][0]),
-        "tier_fast": pick("tier_fast", preferred["tier_fast"][0]),
+        "tier_mid": pick("tier_mid", mid_fallback),
+        "tier_fast": pick("tier_fast", fast_fallback),
     }
 
     # Always force top tier to leader model when specified.
@@ -421,7 +426,7 @@ def build_model_map(
 
 
 def build_tier_candidates(provider: str, available_models: List[str]) -> Dict[str, List[str]]:
-    preferred = PREFERRED_MODELS.get(provider, PREFERRED_MODELS["openai"])
+    preferred = PREFERRED_MODELS.get(provider, {})
 
     def classify(model: str) -> str:
         m = model.lower()
@@ -551,12 +556,11 @@ def main() -> int:
     default_leader_model = (
         os.getenv("OPENCODE_LEADER_MODEL", "")
         or os.getenv("OPENCODE_ORCHESTRATOR_MODEL", "")
-        or "gpt-5.4"
     )
     parser.add_argument(
         "--leader-model",
         default=default_leader_model,
-        help="Top-tier model used by leader (default: gpt-5.4)",
+        help="Top-tier model used by leader (auto-detected from config if omitted)",
     )
     parser.add_argument(
         "--lead-model",

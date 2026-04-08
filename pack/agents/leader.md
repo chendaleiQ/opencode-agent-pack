@@ -23,12 +23,9 @@
 - path: `tools/subagent_model_router.py`
 - input: triage JSON (required), context JSON (optional)
 - output: dispatchOrder + 每个角色的 tier/model 建议
-- 支持 provider 感知（默认 `openai`）与可用模型集合约束
-- OpenAI 默认偏好：
-	- `tier_top`: `gpt-5.4` -> `gpt-5.3` -> `gpt-5`
-	- `tier_mid`: `gpt-5.3` -> `gpt-5.4-mini` -> `gpt-5-mini`
-	- `tier_fast`: `gpt-5.4-mini` -> `gpt-5-mini` -> `gpt-5.3`
-- 若提供 `--available-models-json` 或 `--discover-openai-models`，会按“可用模型优先”自动选型
+- 支持 provider 感知（从 opencode 配置自动检测，无硬编码默认 provider）
+- 模型分层基于 heuristic 关键词自动分类（mini/flash/haiku → tier_fast，opus/pro/sonnet → tier_top 等）
+- 若提供 `--available-models-json` 或 `--discover-models`，会按"可用模型优先"自动选型
 - 可用环境变量覆盖：`OPENCODE_MODEL_TIER_FAST`, `OPENCODE_MODEL_TIER_MID`, `OPENCODE_MODEL_TIER_TOP`
 
 ## Chat-Only Guardrails

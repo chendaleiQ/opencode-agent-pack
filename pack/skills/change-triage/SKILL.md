@@ -1,6 +1,6 @@
 ---
 name: change-triage
-description: Run before any implementation. Outputs structured JSON for lane, tier, and minimal execution-path routing.
+description: Leader-only skill. Run before any implementation. Outputs structured JSON for lane, tier, and minimal execution-path routing. Must not be invoked by analyzer, implementer, or reviewer.
 ---
 
 # Skill: change-triage（V5）

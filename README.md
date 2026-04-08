@@ -137,7 +137,7 @@ During install, the pack configures a pack-scoped provider allowlist in `setting
 ## Use
 
 After install, user workflow is intentionally simple:
-1. ask task directly (or use `/task`)
+1. switch to `leader` agent, then ask task directly
 2. `leader` handles triage/routing/escalation within the documented workflow
 3. `leader` provides the final closure summary after review/end-gate checks
 4. use `/providers` whenever you want to update the pack-scoped provider allowlist
@@ -149,7 +149,7 @@ What it does:
 - takes triage JSON as input
 - returns recommended subagent dispatch order
 - returns model choice per role based on tier (`tier_fast|tier_mid|tier_top`)
-- supports provider-aware model mapping (default: `openai`)
+- supports provider-aware model mapping (auto-detected from config, no hardcoded default provider)
 - can auto-pick from available models list
 - can auto-detect provider/models from local opencode config
 - can auto-discover provider-available models and build tier candidates
@@ -163,13 +163,10 @@ Example:
 PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
     --auto-detect-config \
     --discover-models \
-    --provider openai \
-    --leader-model gpt-5.4 \
-    --available-models-json '["gpt-5.4","gpt-5.4-mini","gpt-5.3"]' \
     --triage-json '{"taskType":"refactor","lane":"quick","analysisTier":"tier_fast","executorTier":"tier_fast","reviewTier":"tier_mid","needsReviewer":false}'
 ```
 
-In this example, quick tasks will prefer `gpt-5.4-mini`; if unavailable, they fall back to `gpt-5.3`.
+The router auto-detects your provider and available models from your opencode config.
 If the active provider is not allowed, the router warns and falls back to the first usable provider inside the allowlist instead of routing outside policy.
 
 Custom-target example:
@@ -182,12 +179,11 @@ PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
 
 With `--config-path`, provider policy is read from `/tmp/my-opencode-pack/settings.json`.
 
-OpenAI model discovery (optional):
+Provider model discovery (optional):
 ```bash
-PYTHONPATH=. OPENAI_API_KEY=... python3 -m pack.tools.subagent_model_router \
+PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
     --auto-detect-config \
     --discover-models \
-    --leader-model gpt-5.4 \
     --triage-json '{"taskType":"feature","lane":"strict","analysisTier":"tier_top","executorTier":"tier_mid","reviewTier":"tier_top","needsReviewer":true}'
 ```
 

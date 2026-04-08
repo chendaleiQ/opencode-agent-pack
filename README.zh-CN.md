@@ -137,7 +137,7 @@ PowerShell：
 ## 使用
 
 安装后，用户工作流刻意保持简单：
-1. 直接提任务（或用 `/task`）
+1. 切换到 `leader` agent，然后直接提任务
 2. `leader` 按文档流程处理分诊/路由/升级
 3. `leader` 在评审/结束门通过后给出最终收口总结
 4. 需要调整 pack 允许使用的 provider 时，使用 `/providers`
@@ -149,7 +149,7 @@ PowerShell：
 - 输入 triage JSON
 - 返回推荐的子代理分发顺序
 - 按 tier（`tier_fast|tier_mid|tier_top`）返回每个角色的模型选择
-- 支持按 provider 映射模型（默认：`openai`）
+- 支持按 provider 映射模型（从配置自动检测，无硬编码默认 provider）
 - 可从可用模型列表自动选择
 - 可从本地 opencode 配置自动检测 provider/models
 - 可自动发现 provider 可用模型并构建 tier 候选
@@ -163,13 +163,10 @@ PowerShell：
 PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
     --auto-detect-config \
     --discover-models \
-    --provider openai \
-    --leader-model gpt-5.4 \
-    --available-models-json '["gpt-5.4","gpt-5.4-mini","gpt-5.3"]' \
     --triage-json '{"taskType":"refactor","lane":"quick","analysisTier":"tier_fast","executorTier":"tier_fast","reviewTier":"tier_mid","needsReviewer":false}'
 ```
 
-上面这个例子中，quick 任务会优先 `gpt-5.4-mini`；若不可用则回退到 `gpt-5.3`。
+Router 会从你的 opencode 配置自动检测 provider 和可用模型。
 如果当前 provider 不被允许，router 会给出 warning，并回退到 allowlist 中第一个可用的 provider，而不是绕过策略继续路由。
 
 自定义目标目录示例：
@@ -182,12 +179,11 @@ PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
 
 传入 `--config-path` 后，provider 策略会从 `/tmp/my-opencode-pack/settings.json` 读取。
 
-OpenAI 模型发现（可选）：
+Provider 模型发现（可选）：
 ```bash
-PYTHONPATH=. OPENAI_API_KEY=... python3 -m pack.tools.subagent_model_router \
+PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
     --auto-detect-config \
     --discover-models \
-    --leader-model gpt-5.4 \
     --triage-json '{"taskType":"feature","lane":"strict","analysisTier":"tier_top","executorTier":"tier_mid","reviewTier":"tier_top","needsReviewer":true}'
 ```
 

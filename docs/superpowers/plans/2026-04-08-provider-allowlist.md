@@ -656,7 +656,7 @@ git commit -m "feat: add provider allowlist command and powershell install suppo
 ## Use
 
 After install, user workflow is intentionally simple:
-1. ask task directly (or use `/task`)
+1. switch to `leader` agent, then ask task directly
 2. use `/providers` any time to reconfigure allowed routing providers
 3. `leader` handles triage/routing/escalation within the documented workflow
 ```
