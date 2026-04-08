@@ -94,15 +94,45 @@
 
 ## 安装
 
-### 全局安装（默认）
-默认安装到 `~/.config/opencode/`，无需参数：
+### 一键安装（默认）
+无需 clone 仓库，直接从最新 GitHub Release 安装：
 
 ```bash
+curl -fsSL https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.sh | bash
+```
+
+PowerShell：
+```powershell
+irm https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.ps1 | iex
+```
+
+如果要安装固定版本而不是 `latest`，先设置 `OPENCODE_AGENT_PACK_VERSION`：
+
+```bash
+OPENCODE_AGENT_PACK_VERSION=v1.0.0 curl -fsSL https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.sh | bash
+```
+
+PowerShell：
+```powershell
+$env:OPENCODE_AGENT_PACK_VERSION = "v1.0.0"
+irm https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.ps1 | iex
+```
+
+bootstrap 脚本会下载对应的 GitHub Release 压缩包，解压到临时目录后再调用包内的本地安装器。
+
+### 本地手动安装
+适用于离线安装、本地调试或贡献者工作流：
+
+```bash
+git clone git@github.com:chendaleiQ/opencode-agent-pack.git
+cd opencode-agent-pack
 bash install.sh
 ```
 
 PowerShell：
 ```powershell
+git clone git@github.com:chendaleiQ/opencode-agent-pack.git
+cd opencode-agent-pack
 .\install.ps1
 ```
 

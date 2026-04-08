@@ -94,15 +94,45 @@ High-risk or sensitive tasks require strong boundary control from the start:
 
 ## Install
 
-### Global Install (default)
-Installs into `~/.config/opencode/` by default. No flags needed:
+### One-Command Install (default)
+Install from the latest GitHub Release without cloning the repository:
 
 ```bash
+curl -fsSL https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.sh | bash
+```
+
+PowerShell:
+```powershell
+irm https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.ps1 | iex
+```
+
+To install a fixed release instead of `latest`, set `OPENCODE_AGENT_PACK_VERSION` before running the bootstrap command:
+
+```bash
+OPENCODE_AGENT_PACK_VERSION=v1.0.0 curl -fsSL https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.sh | bash
+```
+
+PowerShell:
+```powershell
+$env:OPENCODE_AGENT_PACK_VERSION = "v1.0.0"
+irm https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.ps1 | iex
+```
+
+The bootstrap script downloads the matching GitHub Release archive, extracts it into a temporary directory, and then runs the packaged local installer.
+
+### Manual Local Install
+For offline use, local testing, or contributor workflows:
+
+```bash
+git clone git@github.com:chendaleiQ/opencode-agent-pack.git
+cd opencode-agent-pack
 bash install.sh
 ```
 
 PowerShell:
 ```powershell
+git clone git@github.com:chendaleiQ/opencode-agent-pack.git
+cd opencode-agent-pack
 .\install.ps1
 ```
 

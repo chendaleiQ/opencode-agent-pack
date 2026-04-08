@@ -45,6 +45,7 @@
 4. README 与实际行为一致
 5. evals 与 verify / end-gate 说明保持一致
 6. 安装脚本可在基础场景工作（project/global/custom）
+7. GitHub Release 资产已构建并上传：`install.sh`、`install.ps1`、`opencode-agent-pack-<version>.tar.gz`、`opencode-agent-pack-<version>.zip`
 
 ## 发布说明模板（建议）
 - 版本号：
