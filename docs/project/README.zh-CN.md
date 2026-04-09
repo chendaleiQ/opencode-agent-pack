@@ -154,12 +154,10 @@ Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/
 
 ### OpenCode
 
-把插件加到你的 `opencode.json`：
+告诉 OpenCode：
 
-```json
-{
-  "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git"]
-}
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md
 ```
 
 详细说明：[` .opencode/INSTALL.md`](./.opencode/INSTALL.md)

@@ -37,7 +37,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
             content,
         )
         self.assertIn(
-            '"plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git"]',
+            "Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md",
             content,
         )
 

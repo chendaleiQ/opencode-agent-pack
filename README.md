@@ -89,12 +89,10 @@ Detailed docs: [`.codex/INSTALL.md`](./.codex/INSTALL.md)
 
 Native plugin install.
 
-Add the plugin to your `opencode.json`:
+Tell OpenCode:
 
-```json
-{
-  "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git"]
-}
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md
 ```
 
 Detailed docs: [`.opencode/INSTALL.md`](./.opencode/INSTALL.md)
