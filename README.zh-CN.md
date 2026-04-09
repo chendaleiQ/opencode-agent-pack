@@ -120,75 +120,51 @@ do-the-thing 是一个跨平台的 agent workflow plugin。
 
 ## 安装
 
-### 一键安装（默认）
-无需 clone 仓库，直接从最新 GitHub Release 安装：
+不同平台的安装方式略有差异。OpenCode 支持完整功能，Cursor、Claude Code 与 Codex 则以无 `agent router` 的兼容模式运行。
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
+### Claude Code
+
+告诉 Claude Code：
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.claude-plugin/README.md
 ```
 
-PowerShell：
-```powershell
-irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
+详细说明：[` .claude-plugin/README.md`](./.claude-plugin/README.md)
+
+### Cursor
+
+在 Cursor Agent chat 中告诉它：
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.cursor-plugin/README.md
 ```
 
-如果要安装固定版本而不是 `latest`，先设置 `DO_THE_THING_VERSION`：
+详细说明：[` .cursor-plugin/README.md`](./.cursor-plugin/README.md)
 
-```bash
-DO_THE_THING_VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
+### Codex
+
+告诉 Codex：
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.codex/INSTALL.md
 ```
 
-PowerShell：
-```powershell
-$env:DO_THE_THING_VERSION = "v1.0.0"
-irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
+详细说明：[` .codex/INSTALL.md`](./.codex/INSTALL.md)
+
+### OpenCode
+
+告诉 OpenCode：
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md
 ```
 
-bootstrap 脚本会下载对应的 GitHub Release 压缩包，解压到临时目录后再调用包内的本地安装器。
+详细说明：[` .opencode/INSTALL.md`](./.opencode/INSTALL.md)
 
-### 本地手动安装
-适用于离线安装、本地调试或贡献者工作流：
+### 验证安装
 
-```bash
-git clone git@github.com:chendaleiQ/do-the-thing.git
-cd do-the-thing
-bash install.sh
-```
-
-PowerShell：
-```powershell
-git clone git@github.com:chendaleiQ/do-the-thing.git
-cd do-the-thing
-.\install.ps1
-```
-
-### 自定义目标目录
-安装到任意目录：
-
-```bash
-bash install.sh --target /path/to/target
-```
-
-PowerShell：
-```powershell
-.\install.ps1 -Target "C:\path\to\target"
-```
-
-### 安全行为
-- 安装器默认全局安装（`~/.config/opencode/`）
-- 不支持项目级安装
-- 目标目录若存在且非空，除非传 `--force` / `-Force`，否则会中止安装
-- `--force` / `-Force` 会执行干净重建（安装前清空目标目录内容）
-- `--force` / `-Force` 会保留已知用户配置文件：`opencode.json`、`settings.json`
-- 不执行破坏性 reset 操作
-
-### Provider Allowlist
-安装期间，plugin 会在 `settings.json` 中配置一个 plugin 作用域的 provider allowlist：
-- provider 候选会从本地 OpenCode 状态中检测
-- 默认会选中全部已检测到的 provider，直接回车即可接受
-- 选中的策略会写入 `doTheThing.allowedProviders`
-- 如果一个 provider 都没检测到，安装器会保留现有 allowlist，除非你显式确认写入空列表
-- 安装后可通过 `/providers` 查看或重新配置允许路由到哪些 provider
+在目标平台开启一个新会话，给出一个应触发 workflow routing 的任务。会话应通过 `leader` 进入单入口流程、使用内建方法技能，并且只有在 OpenCode 中才会启用 `agent router`。
 
 ## 使用
 
@@ -330,8 +306,6 @@ do-the-thing/
 ├─ README.md
 ├─ README.zh-CN.md
 ├─ LICENSE
-├─ install.sh
-├─ install.ps1
 ├─ RELEASE.md
 ├─ MAINTAINING.md
 ├─ evals/
@@ -340,6 +314,10 @@ do-the-thing/
 │  └─ cases/
 ├─ examples/
 │  └─ minimal-project/
+├─ .opencode/
+├─ .codex/
+├─ .cursor-plugin/
+├─ .claude-plugin/
 └─ pack/
    ├─ AGENTS.md
    ├─ agents/

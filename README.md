@@ -118,77 +118,53 @@ High-risk or sensitive tasks require strong boundary control from the start:
 - strict final approval is always `tier_top`
 - escalation can promote tier/lane automatically
 
-## Install
+## Installation
 
-### One-Command Install (default)
-Install from the latest GitHub Release without cloning the repository:
+Platform installation differs slightly by host. OpenCode has full support, while Cursor, Claude Code, and Codex run without `agent router`.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
+### Claude Code
+
+Tell Claude Code:
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.claude-plugin/README.md
 ```
 
-PowerShell:
-```powershell
-irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
+Detailed docs: [`.claude-plugin/README.md`](./.claude-plugin/README.md)
+
+### Cursor
+
+In Cursor Agent chat, tell it:
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.cursor-plugin/README.md
 ```
 
-To install a fixed release instead of `latest`, set `DO_THE_THING_VERSION` before running the bootstrap command:
+Detailed docs: [`.cursor-plugin/README.md`](./.cursor-plugin/README.md)
 
-```bash
-DO_THE_THING_VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
+### Codex
+
+Tell Codex:
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.codex/INSTALL.md
 ```
 
-PowerShell:
-```powershell
-$env:DO_THE_THING_VERSION = "v1.0.0"
-irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
+Detailed docs: [`.codex/INSTALL.md`](./.codex/INSTALL.md)
+
+### OpenCode
+
+Tell OpenCode:
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md
 ```
 
-The bootstrap script downloads the matching GitHub Release archive, extracts it into a temporary directory, and then runs the packaged local installer.
+Detailed docs: [`.opencode/INSTALL.md`](./.opencode/INSTALL.md)
 
-### Manual Local Install
-For offline use, local testing, or contributor workflows:
+### Verify Installation
 
-```bash
-git clone git@github.com:chendaleiQ/do-the-thing.git
-cd do-the-thing
-bash install.sh
-```
-
-PowerShell:
-```powershell
-git clone git@github.com:chendaleiQ/do-the-thing.git
-cd do-the-thing
-.\install.ps1
-```
-
-### Custom Target
-Install the plugin to any directory:
-
-```bash
-bash install.sh --target /path/to/target
-```
-
-PowerShell:
-```powershell
-.\install.ps1 -Target "C:\path\to\target"
-```
-
-### Safe Behavior
-- installer defaults to global install (`~/.config/opencode/`)
-- project-level install is not supported
-- if target exists and is non-empty, install aborts unless `--force` / `-Force`
-- `--force` / `-Force` performs a clean rebuild (removes target contents before install)
-- `--force` / `-Force` preserves known user config files: `opencode.json`, `settings.json`
-- no destructive reset operations
-
-### Provider Allowlist
-During install, the plugin configures a plugin-scoped provider allowlist in `settings.json`:
-- provider candidates are detected from local OpenCode state
-- provider selection defaults to all detected local providers, so pressing Enter accepts the full set
-- the selected policy is stored under `doTheThing.allowedProviders`
-- if no providers are detected, the installer leaves the existing allowlist unchanged unless you explicitly confirm writing an empty list
-- after install, use `/providers` to review or reconfigure the allowed routing providers
+Start a new session in your chosen platform and ask for a task that should trigger workflow routing. The session should route through `leader`, use the built-in method skills, and only use `agent router` when running in OpenCode.
 
 ## Use
 
@@ -330,8 +306,6 @@ do-the-thing/
 ├─ README.md
 ├─ README.zh-CN.md
 ├─ LICENSE
-├─ install.sh
-├─ install.ps1
 ├─ RELEASE.md
 ├─ MAINTAINING.md
 ├─ evals/
@@ -340,6 +314,10 @@ do-the-thing/
 │  └─ cases/
 ├─ examples/
 │  └─ minimal-project/
+├─ .opencode/
+├─ .codex/
+├─ .cursor-plugin/
+├─ .claude-plugin/
 └─ pack/
    ├─ AGENTS.md
    ├─ agents/
