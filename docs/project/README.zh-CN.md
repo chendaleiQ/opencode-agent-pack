@@ -81,7 +81,7 @@ do-the-thing 是一个跨平台的 agent workflow plugin。
 这并不代表每个低风险任务都要走完整工作流。目标是最小化安全委派，然后回到 `tier_top` 完成最终收口。
 
 ## 子代理行为
-只有 `leader` 应执行如 `change-triage` 这类工作流路由逻辑。
+只有 `leader` 应执行如 `dtt-change-triage` 这类工作流路由逻辑。
 
 被委派的子代理应当：
 - 直接消费交接内容
@@ -93,18 +93,18 @@ do-the-thing 是一个跨平台的 agent workflow plugin。
 这个 plugin 现在内建了一组方法技能，在不放弃单入口工作流控制的前提下，提升执行深度与质量。
 
 当前内建方法技能包括：
-- `brainstorming`
-- `dispatching-parallel-agents`
-- `executing-plans`
-- `finishing-a-development-branch`
-- `writing-plans`
-- `systematic-debugging`
-- `test-driven-development`
-- `verification-before-completion`
-- `requesting-code-review`
-- `receiving-code-review`
+- `dtt-brainstorming`
+- `dtt-dispatching-parallel-agents`
+- `dtt-executing-plans`
+- `dtt-finishing-a-development-branch`
+- `dtt-writing-plans`
+- `dtt-systematic-debugging`
+- `dtt-test-driven-development`
+- `dtt-verification-before-completion`
+- `dtt-requesting-code-review`
+- `dtt-receiving-code-review`
 
-`change-triage` 仍负责决定工作流骨架；这些方法技能只会根据任务形态、评审需求、不确定性与收口状态按条件插入。
+`dtt-change-triage` 仍负责决定工作流骨架；这些方法技能只会根据任务形态、评审需求、不确定性与收口状态按条件插入。
 
 ## 外部技能系统
 这个 plugin 的正常使用不再需要外部工作流系统。

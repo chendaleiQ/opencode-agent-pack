@@ -1,9 +1,9 @@
 ---
-name: test-driven-development
+name: dtt-test-driven-development
 description: Method skill for implementation tasks that change behavior. Use when features, bugfixes, or behavior changes should be developed test-first.
 ---
 
-# Skill: test-driven-development
+# Skill: dtt-test-driven-development
 
 ## Core Rule
 

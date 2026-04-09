@@ -17,8 +17,8 @@ Update two independent plugin docs: one for Cursor installation wording and one 
 - needsReviewer: `true`
 
 ## Expected Workflow
-- `leader` runs `change-triage`
-- `leader` may use `dispatching-parallel-agents` because the slices are clearly independent
+- `leader` runs `dtt-change-triage`
+- `leader` may use `dtt-dispatching-parallel-agents` because the slices are clearly independent
 - if parallel dispatch is chosen, each subtask still keeps fresh context and its own review path
 
 ## Why This Is Correct
@@ -29,6 +29,6 @@ The plugin should only parallelize when independence is clear, not as a default 
 - parallelizing work that still shares state or file boundaries
 
 ## Manual Review Checks
-- verify that `dispatching-parallel-agents` is only used if the files are actually independent
+- verify that `dtt-dispatching-parallel-agents` is only used if the files are actually independent
 - verify that subtask boundaries remain explicit
 - verify that reviewer still sees the completed work before closure

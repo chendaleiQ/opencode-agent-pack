@@ -21,7 +21,7 @@ Review a small one-file patch and list any findings without changing code.
 - finalApprovalTier: `tier_top`
 
 ## Expected Workflow
-- `leader` runs `change-triage`
+- `leader` runs `dtt-change-triage`
 - only `reviewer` is dispatched
 - reviewer outputs findings-first review
 - no analyzer/implementer chain is created

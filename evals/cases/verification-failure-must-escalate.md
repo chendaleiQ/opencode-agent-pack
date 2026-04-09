@@ -6,7 +6,7 @@ Fix a low-risk bug in a helper function, but the targeted verification command f
 ## Background
 - the task starts as a low-risk implementation
 - the important behavior is what happens after verification failure
-- this case exists to protect `verification-before-completion` and escalation rules
+- this case exists to protect `dtt-verification-before-completion` and escalation rules
 
 ## Expected Initial Triage
 - taskType: `bugfix`
@@ -20,7 +20,7 @@ Fix a low-risk bug in a helper function, but the targeted verification command f
 - finalApprovalTier: `tier_top`
 
 ## Expected Behavior After Verification Fails
-- `verification-before-completion` records the failed evidence
+- `dtt-verification-before-completion` records the failed evidence
 - the task must not close on a success claim
 - escalation is triggered because verification failed
 - the final summary must describe the failure rather than implying completion

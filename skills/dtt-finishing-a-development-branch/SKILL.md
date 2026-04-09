@@ -1,9 +1,9 @@
 ---
-name: finishing-a-development-branch
+name: dtt-finishing-a-development-branch
 description: Leader-only method skill. Use when implementation is complete and the user is choosing how to merge, PR, keep, or discard the work.
 ---
 
-# Skill: finishing-a-development-branch
+# Skill: dtt-finishing-a-development-branch
 
 ## Purpose
 

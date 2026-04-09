@@ -1,9 +1,9 @@
 ---
-name: writing-plans
+name: dtt-writing-plans
 description: Leader-only method skill. Use after triage and design clarification when `needsPlan=true` to produce an implementation plan.
 ---
 
-# Skill: writing-plans
+# Skill: dtt-writing-plans
 
 ## Purpose
 
@@ -12,7 +12,7 @@ Turn a clarified task into an actionable implementation plan without taking cont
 ## Rules
 
 - only `leader` invokes this skill
-- only use when `change-triage` says `needsPlan=true`
+- only use when `dtt-change-triage` says `needsPlan=true`
 - keep the plan aligned with the chosen lane and risk boundary
 - break work into small, verifiable steps
 - include exact files and verification expectations when possible

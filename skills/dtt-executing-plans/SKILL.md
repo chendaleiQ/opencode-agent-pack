@@ -1,9 +1,9 @@
 ---
-name: executing-plans
+name: dtt-executing-plans
 description: Leader-only method skill. Use when a plan already exists and the work should be executed in ordered batches with review and verification checkpoints.
 ---
 
-# Skill: executing-plans
+# Skill: dtt-executing-plans
 
 ## Purpose
 
@@ -25,5 +25,5 @@ Turn an existing plan into a controlled execution mode without changing pack wor
 ## Guardrails
 
 - only `leader` invokes this skill
-- this skill executes an existing plan; it does not replace `change-triage`
+- this skill executes an existing plan; it does not replace `dtt-change-triage`
 - review and verification still happen under pack rules

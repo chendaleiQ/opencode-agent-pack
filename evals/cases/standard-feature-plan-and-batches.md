@@ -26,11 +26,11 @@ Add a new configuration toggle that affects several components, update the relat
 - finalApprovalTier: `tier_top`
 
 ## Expected Workflow
-- `leader` runs `brainstorming`
-- then `writing-plans`
-- if work is large enough, `executing-plans` is inserted for batch execution
+- `leader` runs `dtt-brainstorming`
+- then `dtt-writing-plans`
+- if work is large enough, `dtt-executing-plans` is inserted for batch execution
 - analyzer -> implementer -> reviewer flow happens under `standard`
-- `verification-before-completion` runs before closure
+- `dtt-verification-before-completion` runs before closure
 
 ## Why This Is Correct
 This case checks the method-skill hooks for planned standard work.

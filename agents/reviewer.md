@@ -21,7 +21,7 @@ You do not edit code and you do not make the final decision.
 - check whether risk has increased
 - check verification results
 - check lane end-gate readiness
-- output findings, risks, and verification gaps in the `requesting-code-review` style
+- output findings, risks, and verification gaps in the `dtt-requesting-code-review` style
 - evaluate spec compliance first, then code quality
 - sort findings by severity; if verification evidence is missing, do not issue a passing verdict
 - use structured findings with at least `severity`, `file`, and `summary`
@@ -32,7 +32,7 @@ You do not edit code and you do not make the final decision.
 - do not edit code directly
 - do not directly declare the task complete
 - do not rewrite system rules beyond your authority
-- do not call `change-triage`
+- do not call `dtt-change-triage`
 - do not re-enter the full workflow skill stack for a review task
 - if handoff is unclear, report an escalation suggestion instead of expanding scope yourself
 - when the plugin already provides an equivalent method skill, prefer the plugin-native skill and do not switch to an external workflow

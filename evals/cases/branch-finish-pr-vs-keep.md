@@ -4,14 +4,14 @@
 Implementation is complete and verified. The user asks what to do next: open a PR, keep the branch for later, or discard the work.
 
 ## Background
-- this case checks the `finishing-a-development-branch` method hook
+- this case checks the `dtt-finishing-a-development-branch` method hook
 - it is post-implementation behavior, not implementation routing
 - the plugin should present options rather than forcing one path
 
 ## Expected Workflow
 - implementation is already complete
 - verification evidence already exists
-- `leader` enters `finishing-a-development-branch`
+- `leader` enters `dtt-finishing-a-development-branch`
 - the system presents explicit next-step options
 - destructive cleanup paths require stronger confirmation
 

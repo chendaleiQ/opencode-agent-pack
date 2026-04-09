@@ -46,7 +46,7 @@ Low-risk work is bounded, lower impact, and cheaper to execute quickly.
 That does not mean every low-risk task should traverse the full workflow. The goal is minimal safe delegation, then return to `tier_top` for final closure.
 
 ## Subagent Behavior
-Only `leader` should run workflow-routing logic such as `change-triage`.
+Only `leader` should run workflow-routing logic such as `dtt-change-triage`.
 
 Delegated subagents should:
 - consume the handoff directly
@@ -58,18 +58,18 @@ Delegated subagents should:
 The plugin carries its own method skills for deeper execution quality without giving up single-entry workflow control.
 
 Current built-in method skills:
-- `brainstorming`
-- `dispatching-parallel-agents`
-- `executing-plans`
-- `finishing-a-development-branch`
-- `writing-plans`
-- `systematic-debugging`
-- `test-driven-development`
-- `verification-before-completion`
-- `requesting-code-review`
-- `receiving-code-review`
+- `dtt-brainstorming`
+- `dtt-dispatching-parallel-agents`
+- `dtt-executing-plans`
+- `dtt-finishing-a-development-branch`
+- `dtt-writing-plans`
+- `dtt-systematic-debugging`
+- `dtt-test-driven-development`
+- `dtt-verification-before-completion`
+- `dtt-requesting-code-review`
+- `dtt-receiving-code-review`
 
-`change-triage` still decides the workflow skeleton. These method skills are inserted conditionally based on task shape, review needs, uncertainty, and completion state.
+`dtt-change-triage` still decides the workflow skeleton. These method skills are inserted conditionally based on task shape, review needs, uncertainty, and completion state.
 
 ## External Workflow Systems
 External workflow systems are not needed for normal operation.

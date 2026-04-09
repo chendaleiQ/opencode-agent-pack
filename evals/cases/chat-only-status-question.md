@@ -11,7 +11,7 @@ The user asks: "What does `git status` do?"
 
 ## Expected Triage
 - chat-only direct answer
-- no `change-triage` execution
+- no `dtt-change-triage` execution
 - no lane selection
 - no downstream agent dispatch
 

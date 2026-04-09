@@ -1,9 +1,9 @@
 ---
-name: receiving-code-review
+name: dtt-receiving-code-review
 description: Method skill for handling review feedback. Use when implementer receives findings or requested changes.
 ---
 
-# Skill: receiving-code-review
+# Skill: dtt-receiving-code-review
 
 ## Required Behavior
 

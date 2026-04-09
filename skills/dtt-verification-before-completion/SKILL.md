@@ -1,9 +1,9 @@
 ---
-name: verification-before-completion
+name: dtt-verification-before-completion
 description: Method skill for any task that is about to be declared complete. Use before any completion claim, closure, or success statement.
 ---
 
-# Skill: verification-before-completion
+# Skill: dtt-verification-before-completion
 
 ## Core Rule
 

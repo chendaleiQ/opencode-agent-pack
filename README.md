@@ -39,6 +39,7 @@ It is **not**:
 - one strongest entry: `leader`
 - automatic lane routing: `quick`, `standard`, `guarded`, `strict`
 - built-in method skills for planning, debugging, review, verification, and execution
+- pack-owned built-in skills use a `dtt-` prefix to avoid collisions with similarly named external Superpowers skills
 - optional model router for OpenCode environments
 
 Detailed workflow docs:

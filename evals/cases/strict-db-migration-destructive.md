@@ -28,7 +28,7 @@ Add a new order-status column and run a historical data migration that rewrites 
 ## Expected Workflow
 - strict plan and boundaries are required
 - reviewer must check unresolved high-risk issues before closure
-- `verification-before-completion` must include actual migration validation evidence
+- `dtt-verification-before-completion` must include actual migration validation evidence
 
 ## Why This Is Correct
 Database schema plus destructive action is one of the highest-risk combinations the plugin must route safely.

@@ -20,11 +20,12 @@ Use for backward-compatible feature additions or rule refinements:
 
 ## MAJOR (X.y.z)
 Use for incompatible or high-impact behavior changes:
-- `change-triage` output field changes, including additions, removals, renames, or semantic redefinition
+- `dtt-change-triage` output field changes, including additions, removals, renames, or semantic redefinition
 - major lane model changes, such as adding/removing lanes or restructuring routing logic
 - key tier constraint changes, such as `finalApprovalTier` no longer being fixed at top
 - breaking the single-entry model so that leader is no longer the only entry point
 - incompatible changes to install paths or default install behavior
+- breaking rename of pack-owned built-in skill names, such as moving workflow references from generic names to `dtt-*` names
 
 ## Specific Change Classification Rules
 
@@ -40,7 +41,7 @@ Use for incompatible or high-impact behavior changes:
 ## Minimum Pre-Release Checks
 Before each release, confirm at minimum:
 1. the core model is still intact: single entry, single router, single closer
-2. the `change-triage` output format still matches the current version contract
+2. the `dtt-change-triage` output format still matches the current version contract
 3. `evals/rubric.md` still matches the active rules
 4. README still matches actual behavior
 5. evals still match verify and end-gate guidance

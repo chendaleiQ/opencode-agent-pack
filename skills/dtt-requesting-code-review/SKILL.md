@@ -1,9 +1,9 @@
 ---
-name: requesting-code-review
+name: dtt-requesting-code-review
 description: Review method skill. Use when reviewer output should focus on findings, risks, regressions, and verification gaps.
 ---
 
-# Skill: requesting-code-review
+# Skill: dtt-requesting-code-review
 
 ## Review Priorities
 

@@ -21,7 +21,7 @@ Fix a simple docs typo while an external workflow system is installed in the env
 - finalApprovalTier: `tier_top`
 
 ## Expected Workflow
-- only `leader` runs `change-triage`
+- only `leader` runs `dtt-change-triage`
 - quick path dispatches only the minimum necessary downstream role
 - delegated subagent must not rerun triage or launch an external heavyweight workflow chain
 - if handoff is unclear, the subagent should report back instead of expanding scope

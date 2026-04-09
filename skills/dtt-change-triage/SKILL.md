@@ -1,9 +1,9 @@
 ---
-name: change-triage
+name: dtt-change-triage
 description: Leader-only skill. Run before any implementation. Outputs structured JSON for lane, tier, and minimal execution-path routing. Must not be invoked by analyzer, implementer, or reviewer.
 ---
 
-# Skill: change-triage (V5)
+# Skill: dtt-change-triage (V5)
 
 ## Purpose
 
@@ -115,7 +115,7 @@ Output stable structured JSON with:
 
 ## Subagent Handoff Rule
 
-- `change-triage` is leader-only
+- `dtt-change-triage` is leader-only
 - delegated subagents must consume the handoff and stay in-role
 - delegated subagents must not rerun triage or re-enter the full workflow on their own
 - when a subagent lacks boundary clarity, it should report back for escalation rather than invoking heavyweight workflow skills

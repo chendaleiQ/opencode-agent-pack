@@ -16,7 +16,7 @@ Add do-the-thing to the `plugin` array in your `opencode.json` (global or projec
 }
 ```
 
-Restart OpenCode. That's it - the plugin auto-installs from GitHub, syncs the workflow files into your OpenCode config directory, and registers the built-in skills.
+Restart OpenCode. That's it - the plugin auto-installs from GitHub, syncs the workflow files into your OpenCode config directory, and registers the built-in skills. Pack-owned built-in skills use a `dtt-` prefix to avoid collisions with similarly named external Superpowers skills.
 
 To pin a specific version:
 

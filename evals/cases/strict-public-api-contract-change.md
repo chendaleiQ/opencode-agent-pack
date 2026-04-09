@@ -23,7 +23,7 @@ Change a public API response shape by removing an old field and introducing a ne
 - finalApprovalTier: `tier_top`
 
 ## Expected Workflow
-- `leader` runs `brainstorming` and `writing-plans`
+- `leader` runs `dtt-brainstorming` and `dtt-writing-plans`
 - strict boundaries and prohibited actions are stated by `tier_top`
 - reviewer must verify contract risk before closure
 - if reviewer says the task cannot close, closure must be blocked

@@ -9,17 +9,17 @@ class PackSkillsTests(unittest.TestCase):
     def test_pack_includes_builtin_method_skills(self):
         skills_dir = self.repo_root / "skills"
         expected = [
-            "brainstorming",
-            "change-triage",
-            "dispatching-parallel-agents",
-            "executing-plans",
-            "finishing-a-development-branch",
-            "receiving-code-review",
-            "requesting-code-review",
-            "systematic-debugging",
-            "test-driven-development",
-            "verification-before-completion",
-            "writing-plans",
+            "dtt-brainstorming",
+            "dtt-change-triage",
+            "dtt-dispatching-parallel-agents",
+            "dtt-executing-plans",
+            "dtt-finishing-a-development-branch",
+            "dtt-receiving-code-review",
+            "dtt-requesting-code-review",
+            "dtt-systematic-debugging",
+            "dtt-test-driven-development",
+            "dtt-verification-before-completion",
+            "dtt-writing-plans",
         ]
 
         for name in expected:
@@ -31,13 +31,16 @@ class PackSkillsTests(unittest.TestCase):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn("## Built-In Method Skill Hooks", content)
-        self.assertIn("needsPlan=true -> `brainstorming` then `writing-plans`", content)
         self.assertIn(
-            "bugfix|investigation + failure/uncertainty -> `systematic-debugging`",
+            "needsPlan=true -> `dtt-brainstorming` then `dtt-writing-plans`",
             content,
         )
         self.assertIn(
-            "before any completion claim -> `verification-before-completion`",
+            "bugfix|investigation + failure/uncertainty -> `dtt-systematic-debugging`",
+            content,
+        )
+        self.assertIn(
+            "before any completion claim -> `dtt-verification-before-completion`",
             content,
         )
 
@@ -45,18 +48,20 @@ class PackSkillsTests(unittest.TestCase):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn(
-            "if quick encounters failure, unexpected behavior, or unclear cause, insert `systematic-debugging` first",
+            "if quick encounters failure, unexpected behavior, or unclear cause, insert `dtt-systematic-debugging` first",
             content,
         )
         self.assertIn(
-            "if `needsPlan=true`, run `brainstorming` first, then `writing-plans`",
+            "if `needsPlan=true`, run `dtt-brainstorming` first, then `dtt-writing-plans`",
             content,
         )
         self.assertIn(
-            "reviewer (`tier_mid`, using `requesting-code-review` output style)",
+            "reviewer (`tier_mid`, using `dtt-requesting-code-review` output style)",
             content,
         )
-        self.assertIn("run `verification-before-completion` before closing", content)
+        self.assertIn(
+            "run `dtt-verification-before-completion` before closing", content
+        )
 
     def test_pack_prefers_builtin_skills_over_external_superpowers(self):
         content = (self.repo_root / "AGENTS.md").read_text(encoding="utf-8")
@@ -85,7 +90,7 @@ class PackSkillsTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("`test-driven-development`", implementer)
+        self.assertIn("`dtt-test-driven-development`", implementer)
         self.assertIn('"selfReviewSummary": "short note"', implementer)
         self.assertIn("evaluate spec compliance first, then code quality", reviewer)
         self.assertIn('"specCompliance": "pass|fail"', reviewer)
@@ -98,18 +103,18 @@ class PackSkillsTests(unittest.TestCase):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn(
-            "plan exists and work should advance in batches -> `executing-plans`",
+            "plan exists and work should advance in batches -> `dtt-executing-plans`",
             content,
         )
         self.assertIn(
-            "user enters merge/PR/keep/discard closing flow -> `finishing-a-development-branch`",
+            "user enters merge/PR/keep/discard closing flow -> `dtt-finishing-a-development-branch`",
             content,
         )
         self.assertIn(
             "if a plan exists, standard/strict work may proceed in batches", content
         )
         self.assertIn(
-            "after implementation and verification pass, move into `finishing-a-development-branch`",
+            "after implementation and verification pass, move into `dtt-finishing-a-development-branch`",
             content,
         )
 
@@ -122,15 +127,17 @@ class PackSkillsTests(unittest.TestCase):
         self.assertIn("## Workflow at a Glance", content)
         self.assertIn("docs/project/WORKFLOW.md", content)
         self.assertIn("docs/project/ROUTER.md", content)
-        self.assertIn("`change-triage` still decides the workflow skeleton", workflow)
+        self.assertIn(
+            "`dtt-change-triage` still decides the workflow skeleton", workflow
+        )
         self.assertIn(
             "plugin-native method skills should be preferred over external equivalents",
             workflow,
         )
-        self.assertIn("`test-driven-development`", workflow)
-        self.assertIn("`dispatching-parallel-agents`", workflow)
-        self.assertIn("`executing-plans`", workflow)
-        self.assertIn("`finishing-a-development-branch`", workflow)
+        self.assertIn("`dtt-test-driven-development`", workflow)
+        self.assertIn("`dtt-dispatching-parallel-agents`", workflow)
+        self.assertIn("`dtt-executing-plans`", workflow)
+        self.assertIn("`dtt-finishing-a-development-branch`", workflow)
 
     def test_docs_deemphasize_external_superpowers(self):
         english = (self.repo_root / "README.md").read_text(encoding="utf-8")

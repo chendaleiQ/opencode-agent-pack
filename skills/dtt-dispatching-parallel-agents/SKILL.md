@@ -1,9 +1,9 @@
 ---
-name: dispatching-parallel-agents
+name: dtt-dispatching-parallel-agents
 description: Leader-only method skill. Use when multiple task slices are independent enough to be dispatched in parallel without shared-state or edit conflicts.
 ---
 
-# Skill: dispatching-parallel-agents
+# Skill: dtt-dispatching-parallel-agents
 
 ## Purpose
 

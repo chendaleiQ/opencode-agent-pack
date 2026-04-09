@@ -67,6 +67,8 @@ class PlatformInstallDocsTests(unittest.TestCase):
             content,
         )
         self.assertIn("Restart OpenCode", content)
+        self.assertIn("Pack-owned built-in skills use a `dtt-` prefix", content)
+        self.assertIn("detects duplicate skill names from multiple sources", content)
 
     def test_opencode_plugin_syncs_from_package_root_not_runtime_directory(self):
         content = (

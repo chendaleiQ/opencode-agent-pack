@@ -22,7 +22,7 @@ Investigate why a log line appears twice in local development and explain the li
 - finalApprovalTier: `tier_top`
 
 ## Expected Workflow
-- `leader` runs `change-triage`
+- `leader` runs `dtt-change-triage`
 - only `analyzer` is dispatched
 - no `implementer`
 - no reviewer unless new risk appears during investigation

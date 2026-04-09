@@ -26,10 +26,10 @@ Fix a typo in one Markdown file: change `envrionment` to `environment`.
 - finalApprovalTier: `tier_top`
 
 ## Expected Workflow
-- `leader` runs `change-triage`
+- `leader` runs `dtt-change-triage`
 - only `implementer` is dispatched
 - no analyzer/reviewer chain is added
-- `verification-before-completion` still runs before closing
+- `dtt-verification-before-completion` still runs before closing
 
 ## Why This Is Correct
 This is the canonical minimum-path quick implementation case.

@@ -1,9 +1,9 @@
 ---
-name: systematic-debugging
+name: dtt-systematic-debugging
 description: Method skill for bugfix or investigation tasks. Use after triage when failures, unexpected behavior, or uncertainty require root-cause analysis before fixing.
 ---
 
-# Skill: systematic-debugging
+# Skill: dtt-systematic-debugging
 
 ## Core Rule
 
