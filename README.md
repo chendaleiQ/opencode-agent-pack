@@ -98,24 +98,24 @@ High-risk or sensitive tasks require strong boundary control from the start:
 Install from the latest GitHub Release without cloning the repository:
 
 ```bash
-curl -fsSL https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash
 ```
 
 PowerShell:
 ```powershell
-irm https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.ps1 | iex
+irm https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.ps1 | iex
 ```
 
 To install a fixed release instead of `latest`, set `OPENCODE_AGENT_PACK_VERSION` before running the bootstrap command:
 
 ```bash
-OPENCODE_AGENT_PACK_VERSION=v1.0.0 curl -fsSL https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.sh | bash
+OPENCODE_AGENT_PACK_VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash
 ```
 
 PowerShell:
 ```powershell
 $env:OPENCODE_AGENT_PACK_VERSION = "v1.0.0"
-irm https://github.com/chendaleiQ/opencode-agent-pack/releases/latest/download/install.ps1 | iex
+irm https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.ps1 | iex
 ```
 
 The bootstrap script downloads the matching GitHub Release archive, extracts it into a temporary directory, and then runs the packaged local installer.
