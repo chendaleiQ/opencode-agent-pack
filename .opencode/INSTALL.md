@@ -35,6 +35,8 @@ rm -f ~/.config/opencode/AGENTS.md
 rm -rf ~/.config/opencode/agents ~/.config/opencode/commands ~/.config/opencode/skills ~/.config/opencode/tools
 ```
 
+If you also have older skill sources in `~/.agents/skills`, remove or disable them before enabling do-the-thing. The plugin will stop loading when it detects duplicate skill names from multiple sources.
+
 ## Verify Installation
 
 Start a new OpenCode session and ask for a task that should trigger workflow routing. The session should route through `leader`, use the built-in method skills, and keep `agent router` available.

@@ -4,6 +4,62 @@ import path from 'path';
 
 const MANAGED_PATHS = ['AGENTS.md', 'agents', 'commands', 'skills', 'tools'];
 
+function listSkillNames(skillsRoot) {
+  if (!fs.existsSync(skillsRoot)) return [];
+
+  const names = new Set();
+  const stack = [skillsRoot];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const next = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        const skillFile = path.join(next, 'SKILL.md');
+        if (fs.existsSync(skillFile)) {
+          names.add(path.basename(next));
+          continue;
+        }
+        stack.push(next);
+      }
+    }
+  }
+
+  return [...names].sort();
+}
+
+function ensureNoDuplicateSkillSources(repoDir, configDir) {
+  const repoSkills = new Set(listSkillNames(path.join(repoDir, 'skills')));
+  const externalRoots = [path.join(os.homedir(), '.agents', 'skills')];
+  const duplicates = [];
+
+  for (const root of externalRoots) {
+    for (const skillName of listSkillNames(root)) {
+      if (repoSkills.has(skillName)) {
+        duplicates.push({ skillName, root });
+      }
+    }
+  }
+
+  if (duplicates.length === 0) return;
+
+  const duplicateList = duplicates
+    .map((item) => `- ${item.skillName} (${item.root})`)
+    .join('\n');
+
+  throw new Error(
+    [
+      'do-the-thing installation stopped because duplicate skill sources were found.',
+      'Remove or disable the old skill source before continuing.',
+      '',
+      'Detected duplicates:',
+      duplicateList,
+      '',
+      `Managed install target: ${path.join(configDir, 'skills')}`,
+    ].join('\n'),
+  );
+}
+
 function resolveConfigDir() {
   const configured = process.env.OPENCODE_CONFIG_DIR?.trim();
   if (configured) return path.resolve(configured);
@@ -24,6 +80,7 @@ function syncManagedContent(repoDir, configDir) {
 
 export const DoTheThingPlugin = async ({ directory }) => {
   const configDir = resolveConfigDir();
+  ensureNoDuplicateSkillSources(directory, configDir);
   syncManagedContent(directory, configDir);
 
   return {
