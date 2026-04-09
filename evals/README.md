@@ -1,47 +1,47 @@
 # Evals
 
-本目录用于持续评估 `do-the-thing` 的分诊与路由质量，重点关注高风险漏判防护。
-当前 evals 默认是**人工执行、人工比对、人工记录**的流程，不附带真实 CI 自动化。
+This directory is used to manually evaluate the routing and workflow quality of `do-the-thing`, with the highest priority on preventing high-risk under-classification.
 
-## 目录
-- `rubric.md`：统一评估标准
-- `cases/`：代表性任务样例（可持续新增）
+The evals in this repository are intentionally **manual-run, manual-compare, manual-record** checks. They are not wired into CI by default.
 
-## 如何使用
-1. 选取一个 case
-2. 手动让系统执行 triage（必要时执行到 review / closure）
-3. 保存或记录实际输出
-4. 对照 case 的“预期结果”与 `rubric.md` 评分
-5. 记录偏差类型与验证证据：
-   - 运行了哪些命令（如果有）
-   - 做了哪些人工检查（如果没有正式 verify 命令）
-   - reviewer / end-gate 是否被正确执行
-6. 形成修正动作并更新版本说明
+## Contents
+- `rubric.md`: the shared scoring rubric
+- `cases/`: representative task scenarios that exercise the workflow
 
-常见偏差类型：
-- 高风险漏判
-- 低风险过度升级
-- lane 错配
-- tier 错配
-- 升级未触发
-- reviewer / end-gate 执行不一致
-- quick 任务被不必要地走成全流程
-- subagent 重复运行 triage 或工作流技能
+## How to Use
+1. Pick a case
+2. Run the system manually through triage, and continue into review or closure when the case requires it
+3. Save or record the actual outputs
+4. Compare the observed behavior with the expected behavior in the case file and score it with `rubric.md`
+5. Record deviations and verification evidence:
+   - which commands were run, if any
+   - which manual checks were performed when no formal verify command existed
+   - whether reviewer and end-gate behavior happened correctly
+6. Turn the result into a correction action and update release notes when needed
 
-## 新增 case 规范
-每个 case 必须包含：
-- 任务描述
-- 背景
-- 预期 complexity/risk/lane
-- 预期 tier 路由
-- 判断依据
-- 错分风险点
-- 人工检查要点（可选但建议）
+## Common Deviation Types
+- high-risk under-classification
+- low-risk over-escalation
+- wrong lane choice
+- wrong tier routing
+- escalation that should have happened but did not
+- reviewer or end-gate inconsistency
+- quick task taking an unnecessary full workflow path
+- subagent rerunning triage or heavyweight workflow logic
 
-## 评估优先级
-最优先不是总体准确率，而是：
-**高风险漏判率尽量低**。
+## Case Authoring Requirements
+Each case should include:
+- task description
+- background
+- expected complexity/risk/lane
+- expected tier routing
+- why the judgment is correct
+- misclassification risks
+- manual review checks (optional, but recommended)
 
-## 说明
-- 这些 evals 主要用于本地或人工 review 场景
-- 如果将来需要接入 CI，应先确认不会改变当前“人工为主”的默认流程
+## Evaluation Priority
+The top priority is **keeping the high-risk miss rate low**, not maximizing general accuracy.
+
+## Notes
+- these evals are mainly for local review or manual workflow checks
+- if CI is added later, it should not change the current manual-first operating model
