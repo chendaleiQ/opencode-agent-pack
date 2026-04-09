@@ -1,0 +1,6 @@
+{
+  "name": "do-the-thing",
+  "version": "1.1.0",
+  "type": "module",
+  "main": ".opencode/plugins/do-the-thing.js"
+}

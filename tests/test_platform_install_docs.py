@@ -9,9 +9,11 @@ class PlatformInstallDocsTests(unittest.TestCase):
     def test_platform_install_entry_files_exist(self):
         expected = [
             self.repo_root / ".opencode" / "INSTALL.md",
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js",
             self.repo_root / ".codex" / "INSTALL.md",
             self.repo_root / ".cursor-plugin" / "README.md",
             self.repo_root / ".claude-plugin" / "README.md",
+            self.repo_root / "package.json",
         ]
 
         for path in expected:
@@ -35,7 +37,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
             content,
         )
         self.assertIn(
-            "Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md",
+            '"plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git"]',
             content,
         )
 
@@ -54,6 +56,34 @@ class PlatformInstallDocsTests(unittest.TestCase):
             self.assertNotIn("bash install.sh", content)
             self.assertNotIn("install.ps1", content)
             self.assertNotIn("bootstrap/install.sh", content)
+
+    def test_opencode_install_doc_uses_plugin_array_install(self):
+        content = (self.repo_root / ".opencode" / "INSTALL.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            '"plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git"]',
+            content,
+        )
+        self.assertIn("Restart OpenCode", content)
+
+    def test_platform_docs_distinguish_native_vs_manual_install(self):
+        readme = (self.repo_root / "README.md").read_text(encoding="utf-8")
+        codex = (self.repo_root / ".codex" / "INSTALL.md").read_text(encoding="utf-8")
+        cursor = (self.repo_root / ".cursor-plugin" / "README.md").read_text(
+            encoding="utf-8"
+        )
+        claude = (self.repo_root / ".claude-plugin" / "README.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("Native plugin install.", readme)
+        self.assertIn("Manual install.", readme)
+        self.assertIn("Manual compatibility install.", readme)
+        self.assertIn("manual install", codex.lower())
+        self.assertIn("manual compatibility install", cursor.lower())
+        self.assertIn("manual compatibility install", claude.lower())
 
     def test_legacy_install_script_chain_is_removed(self):
         removed = [

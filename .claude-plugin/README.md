@@ -1,6 +1,6 @@
 # do-the-thing for Claude Code
 
-Claude Code is supported in compatibility mode. The workflow plugin is available, but `agent router` is not.
+Claude Code uses manual compatibility install. `agent router` is not available.
 
 Tell Claude Code:
 
@@ -10,7 +10,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/
 
 ## Install
 
-Use the GitHub-hosted plugin instructions as the source of truth for the workflow prompts and plugin files. Claude Code should use the same single-entry workflow and built-in method skills, but not `agent router`.
+Use the GitHub-hosted workflow instructions in compatibility mode.
 
 ## Verify Installation
 

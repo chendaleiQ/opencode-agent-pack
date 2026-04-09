@@ -1,6 +1,6 @@
 # do-the-thing for Cursor
 
-Cursor is supported in compatibility mode. The workflow plugin is available, but `agent router` is not.
+Cursor uses manual compatibility install. `agent router` is not available.
 
 In Cursor Agent chat, tell it:
 
@@ -10,7 +10,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/
 
 ## Install
 
-Use the GitHub-hosted plugin instructions as the source of truth for the workflow prompts and plugin files. Cursor should use the same single-entry workflow and built-in method skills, but not `agent router`.
+Use the GitHub-hosted workflow instructions in compatibility mode.
 
 ## Verify Installation
 

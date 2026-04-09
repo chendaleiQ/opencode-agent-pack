@@ -47,9 +47,11 @@ Detailed workflow docs:
 
 ## Installation
 
-Platform installation differs slightly by host. OpenCode has full support, while Cursor, Claude Code, and Codex run without `agent router`.
+Platform installation differs by host.
 
 ### Claude Code
+
+Manual compatibility install.
 
 Tell Claude Code:
 
@@ -61,6 +63,8 @@ Detailed docs: [`.claude-plugin/README.md`](./.claude-plugin/README.md)
 
 ### Cursor
 
+Manual compatibility install.
+
 In Cursor Agent chat, tell it:
 
 ```text
@@ -70,6 +74,8 @@ Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/
 Detailed docs: [`.cursor-plugin/README.md`](./.cursor-plugin/README.md)
 
 ### Codex
+
+Manual install.
 
 Tell Codex:
 
@@ -81,10 +87,14 @@ Detailed docs: [`.codex/INSTALL.md`](./.codex/INSTALL.md)
 
 ### OpenCode
 
-Tell OpenCode:
+Native plugin install.
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md
+Add the plugin to your `opencode.json`:
+
+```json
+{
+  "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git"]
+}
 ```
 
 Detailed docs: [`.opencode/INSTALL.md`](./.opencode/INSTALL.md)

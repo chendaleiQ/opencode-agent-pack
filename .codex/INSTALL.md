@@ -1,6 +1,6 @@
 # do-the-thing for Codex
 
-Codex is supported in compatibility mode. The workflow plugin is available, but `agent router` is not.
+Codex uses manual install. `agent router` is not available.
 
 Tell Codex:
 
@@ -10,7 +10,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/
 
 ## Install
 
-Codex should use the GitHub-hosted plugin files and workflow prompts, but must not rely on `agent router`.
+Use the GitHub-hosted workflow files in compatibility mode.
 
 ## Verify Installation
 
