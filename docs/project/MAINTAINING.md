@@ -1,82 +1,82 @@
 # Maintaining Guide
 
-本文件定义误判修正与长期收敛流程。目标：可评估、可迭代、不过度膨胀。
+This document defines the false-classification correction process and the long-term convergence workflow. The goal is to stay measurable, iterative, and resistant to prompt bloat.
 
-## 维护优先级（固定）
-1. **高风险漏判防护优先**
-2. 再优化低风险过度升级
-3. 最后处理表述与体验细节
+## Maintenance Priorities (Fixed)
+1. **Protect against high-risk misses first**
+2. Then optimize low-risk over-escalation
+3. Handle wording and UX details last
 
-## 当发现错分时的修正顺序
-1. 先补一个 `evals/cases` 真实案例（可脱敏）
-2. 用 `evals/rubric.md` 明确错在哪里
-3. 调整 triage 判定规则（优先小改、可解释）
-4. 必要时收紧 quick lane 门槛
-5. 必要时提高敏感项优先级
-6. 再更新 README/说明文档
+## Fix Order When You Find a Misclassification
+1. Add a real case to `evals/cases` first, redacted if needed
+2. Use `evals/rubric.md` to describe the exact failure
+3. Adjust triage rules, preferring small and explainable changes
+4. Tighten the quick lane threshold when necessary
+5. Raise the priority of sensitive-signal handling when necessary
+6. Update README and supporting docs afterward
 
-禁止直接跳到“堆更多长提示词”而不补案例。
+Do not jump straight to piling on more long prompts without first adding a case.
 
-## 什么时候新增 hard rule
-满足任一条件可考虑新增 hard rule：
-- 同类高风险漏判重复出现（>=2 次）
-- 漏判后果高（安全、数据、对外契约）
-- 仅靠文案提醒无法稳定防止复发
+## When To Add a Hard Rule
+Consider adding a hard rule when any of these is true:
+- the same kind of high-risk miss happens repeatedly (>=2 times)
+- the impact of the miss is severe (security, data, external contract)
+- wording guidance alone cannot prevent recurrence reliably
 
-hard rule 示例方向：
-- 命中敏感项时 risk 强制 high
-- 某类任务禁止进入 quick
-- 某类验证失败必须升级 strict
+Examples of hard-rule directions:
+- force `risk=high` when a sensitive signal is hit
+- ban a certain task class from entering `quick`
+- require escalation to `strict` after a certain verification failure
 
-## 什么时候只更新文档
-仅当以下情况成立：
-- 行为本身正确，误解来自说明不清
-- 无真实错分证据
-- 不涉及安全/数据/对外契约风险
+## When To Update Documentation Only
+Only do this when all of the following are true:
+- the behavior itself is correct and the issue comes from unclear explanation
+- there is no real misclassification evidence
+- the issue does not involve security, data, or external contract risk
 
-此时只做 PATCH 级文档更新。
+In that case, make only a PATCH-level documentation change.
 
-## 如何避免系统越来越臃肿
-- 每次规则新增必须绑定至少一个 eval case
-- 优先改“门槛与优先级”，少加自由文本例外
-- 同类规则合并，避免重复表达
-- 定期清理已失效或重复的规则描述
-- 发布前检查规则总量与可读性
-- 不要把 quick 重新写回固定的 analyzer + implementer + reviewer 全链路
-- 不要要求 subagent 为局部任务重跑 triage 或整套工作流技能
+## How To Keep the System From Becoming Bloated
+- every new rule must be tied to at least one eval case
+- prefer changing thresholds and priority instead of adding free-form exceptions
+- merge overlapping rules instead of restating them
+- regularly remove outdated or duplicate rule text
+- review total rule count and readability before release
+- do not regress `quick` back into a fixed analyzer + implementer + reviewer chain
+- do not require subagents to rerun triage or a full workflow stack for local tasks
 
-## 误判类型与处理建议
+## Misclassification Types and Handling Guidance
 
-### A. 高风险被误降级（最严重）
-- 立即补 case
-- 优先上 hard rule 或收紧 quick/standard 条件
-- 必要时将相关任务默认提升到 guarded/strict
-- 通常至少 MINOR，若 schema/核心逻辑变动则 MAJOR
+### A. High-Risk Work Incorrectly Downgraded (Most Severe)
+- add a case immediately
+- prefer a hard rule or tighter quick/standard conditions
+- move related task types to guarded/strict by default when necessary
+- usually at least MINOR, or MAJOR if schema or core logic changes
 
-### B. 低风险被过度升级
-- 先确认是否是可接受保守策略
-- 若影响效率明显，再做温和放宽
-- 先从 tier 降成本优化，不优先放宽 lane
-- 若问题是流程过重，先检查 quick 是否误走全链路、subagent 是否重复跑工作流
-- 通常 PATCH 或 MINOR
+### B. Low-Risk Work Over-Escalated
+- first decide whether the conservative behavior is acceptable
+- if it clearly hurts efficiency, loosen it carefully
+- optimize cost through tier selection before loosening the lane itself
+- if the issue is process weight, first check whether quick is wrongly using the full chain or whether subagents are rerunning the workflow
+- usually PATCH or MINOR
 
-### C. 运行中才暴露风险
-- 增补“边界升级”类 case
-- 强化 analyzer/reviewer 的升级触发条件
-- 确保自动升配链路可触发且被记录
+### C. Risk Only Becomes Visible During Execution
+- add cases for boundary-triggered escalation
+- strengthen escalation triggers for analyzer and reviewer
+- make sure the auto-escalation chain can still trigger and be recorded
 
-## 维护工作流（建议）
-1. 收集真实任务（脱敏）
-2. 分类：漏判/过审/升级滞后
-3. 写入或更新 eval case
-4. 运行人工评估并记录结果（包括命令验证或人工检查证据）
-5. 提交规则修正
-6. 更新 RELEASE.md 版本级别
-7. 发布并在下轮评估复测
+## Suggested Maintenance Workflow
+1. collect real tasks, redacted if needed
+2. classify them: missed risk / over-permissive pass / delayed escalation
+3. add or update the matching eval case
+4. run manual evaluation and record the result, including command verification or explicit manual evidence
+5. submit the rule correction
+6. update the release level in `RELEASE.md`
+7. release and retest during the next evaluation cycle
 
-## PR 审查最低要求
-- 是否新增/更新了对应 eval case
-- 是否说明了高风险漏判影响
-- 是否说明版本级别与理由
-- 是否保持单入口与最终收口机制不变
-- 是否避免无边界的规则膨胀
+## Minimum PR Review Requirements
+- did it add or update the matching eval case?
+- did it explain the impact of the high-risk miss?
+- did it explain the release level and why?
+- did it preserve the single-entry and final-closure model?
+- did it avoid unbounded rule growth?

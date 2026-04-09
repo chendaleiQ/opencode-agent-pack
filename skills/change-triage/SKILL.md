@@ -3,7 +3,7 @@ name: change-triage
 description: Leader-only skill. Run before any implementation. Outputs structured JSON for lane, tier, and minimal execution-path routing. Must not be invoked by analyzer, implementer, or reviewer.
 ---
 
-# Skill: change-triage（V5）
+# Skill: change-triage (V5)
 
 ## Purpose
 
@@ -46,7 +46,7 @@ Output stable structured JSON with:
 "executorTier": "tier_fast|tier_mid|tier_top",
 "reviewTier": "tier_fast|tier_mid|tier_top",
 "finalApprovalTier": "tier_top",
-"reasoningSummary": "一句话说明为什么这么分流"
+"reasoningSummary": "One sentence explaining why this routing was chosen"
 }
 
 ## Classification Rules

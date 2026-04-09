@@ -1,4 +1,4 @@
-# Command: /providers（V5）
+# Command: /providers (V5)
 
 ## Purpose
 Pack-scoped command for inspecting and updating the `do-the-thing` provider allowlist after install.

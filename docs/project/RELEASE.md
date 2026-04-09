@@ -1,56 +1,55 @@
 # Release Policy
 
-本项目采用语义化版本：`MAJOR.MINOR.PATCH`。
+This project uses semantic versioning: `MAJOR.MINOR.PATCH`.
 
-## 版本级别定义
+## Version Levels
 
-## PATCH（x.y.Z）
-适用于不改变核心行为、可安全小步发布的变更：
-- README、示例、注释、措辞修正
-- `evals/cases` 新增或补充（不修改核心路由规则）
-- 安装脚本的小修复（不改变默认安装语义）
-- 拼写、格式、链接修复
+## PATCH (x.y.Z)
+Use for changes that do not alter core behavior and can be released safely in small steps:
+- README, examples, comments, and wording fixes
+- new or updated `evals/cases` without changing core routing rules
+- small install fixes that do not change default install semantics
+- spelling, formatting, and link fixes
 
-## MINOR（x.Y.z）
-适用于向后兼容的功能增强或规则细化：
-- triage 规则的兼容性优化（不破坏已有字段/流程）
-- lane/tier 的默认策略细化（不改变核心角色与单入口定位）
-- 新增可选检查项或评测工具说明
-- 安装流程新增可选参数（默认行为兼容）
+## MINOR (x.Y.z)
+Use for backward-compatible feature additions or rule refinements:
+- compatibility improvements to triage rules without breaking existing fields or flow
+- refinements to default lane or tier strategy without changing core roles or the single-entry model
+- new optional checks or evaluation tooling guidance
+- new optional install parameters that keep the default behavior compatible
 
-## MAJOR（X.y.z）
-适用于不兼容或高影响行为变化：
-- `change-triage` 输出字段变更（增删改字段、语义重定义）
-- lane 体系重大变更（如新增/删除 lane，或判定逻辑重构）
-- tier 关键约束改变（如 finalApprovalTier 不再固定 top）
-- 单入口模型被破坏（不是 leader 单入口）
-- 安装路径/默认行为发生不兼容变化
+## MAJOR (X.y.z)
+Use for incompatible or high-impact behavior changes:
+- `change-triage` output field changes, including additions, removals, renames, or semantic redefinition
+- major lane model changes, such as adding/removing lanes or restructuring routing logic
+- key tier constraint changes, such as `finalApprovalTier` no longer being fixed at top
+- breaking the single-entry model so that leader is no longer the only entry point
+- incompatible changes to install paths or default install behavior
 
-## 特定变更分级规则
+## Specific Change Classification Rules
 
-- triage 规则微调（不改 schema）：MINOR
-- triage 输出 schema 变更：MAJOR
-- lane/tier 逻辑轻度收紧且兼容：MINOR
-- lane/tier 根本性变更：MAJOR
-- install 默认目标目录改变：MAJOR
-- install 新增可选 flag 且默认不变：MINOR
-- README/examples 小改动：PATCH
-- 仅新增 eval case：PATCH（若顺带改规则，按规则本身升级）
+- small triage rule tuning without schema changes: MINOR
+- triage output schema changes: MAJOR
+- compatible tightening of lane or tier behavior: MINOR
+- fundamental lane or tier changes: MAJOR
+- changing the default install target path: MAJOR
+- adding optional install flags while keeping defaults unchanged: MINOR
+- small README or examples changes: PATCH
+- adding only a new eval case: PATCH, unless the same change also alters core rules
 
-## 发布前最小检查
-每次发布前至少确认：
-1. 核心定位未破坏（单入口、唯一分流、唯一收口）
-2. `change-triage` 输出格式符合当前版本规范
-3. `evals/rubric.md` 与规则一致
-4. README 与实际行为一致
-5. evals 与 verify / end-gate 说明保持一致
-6. 安装脚本可在基础场景工作（project/global/custom）
-7. GitHub Release 资产已构建并上传：`install.sh`、`install.ps1`、`do-the-thing-<version>.tar.gz`、`do-the-thing-<version>.zip`
+## Minimum Pre-Release Checks
+Before each release, confirm at minimum:
+1. the core model is still intact: single entry, single router, single closer
+2. the `change-triage` output format still matches the current version contract
+3. `evals/rubric.md` still matches the active rules
+4. README still matches actual behavior
+5. evals still match verify and end-gate guidance
+6. the platform install instructions still work in their supported platforms
 
-## 发布说明模板（建议）
-- 版本号：
-- 变更级别：MAJOR/MINOR/PATCH
-- 核心变更：
-- 风险评估：
-- 是否影响 triage/lane/tier：
-- 是否需要迁移说明：
+## Release Notes Template (Recommended)
+- version:
+- release level: MAJOR/MINOR/PATCH
+- core changes:
+- risk assessment:
+- triage/lane/tier impact:
+- migration note needed:

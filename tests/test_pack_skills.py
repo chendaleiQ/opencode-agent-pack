@@ -45,28 +45,36 @@ class PackSkillsTests(unittest.TestCase):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn(
-            "若 quick 过程中出现失败、异常或原因不清，先插入 `systematic-debugging`",
+            "if quick encounters failure, unexpected behavior, or unclear cause, insert `systematic-debugging` first",
             content,
         )
         self.assertIn(
-            "若 `needsPlan=true`，先 `brainstorming`，再 `writing-plans`", content
+            "if `needsPlan=true`, run `brainstorming` first, then `writing-plans`",
+            content,
         )
         self.assertIn(
-            "reviewer（tier_mid，按 `requesting-code-review` 方式输出）", content
+            "reviewer (`tier_mid`, using `requesting-code-review` output style)",
+            content,
         )
-        self.assertIn("结束前执行 `verification-before-completion`", content)
+        self.assertIn("run `verification-before-completion` before closing", content)
 
     def test_pack_prefers_builtin_skills_over_external_superpowers(self):
         content = (self.repo_root / "AGENTS.md").read_text(encoding="utf-8")
 
-        self.assertIn("plugin 内建 method skills 优先", content)
-        self.assertIn("外部工作流系统不得替代本 plugin 工作流", content)
+        self.assertIn("plugin-native method skills come first", content)
+        self.assertIn(
+            "external workflow systems must not replace this plugin workflow",
+            content,
+        )
 
     def test_leader_absorbs_subagent_driven_development_discipline(self):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn("fresh context per task", content)
-        self.assertIn("实现者先自检，再进入 reviewer", content)
+        self.assertIn(
+            "implementation tasks require implementers to self-review before work goes to reviewer",
+            content,
+        )
         self.assertIn("spec compliance first, then code quality", content)
 
     def test_implementer_and_reviewer_reference_tdd_and_review_ordering(self):
@@ -79,7 +87,7 @@ class PackSkillsTests(unittest.TestCase):
 
         self.assertIn("`test-driven-development`", implementer)
         self.assertIn('"selfReviewSummary": "short note"', implementer)
-        self.assertIn("先做 spec compliance，再看 code quality", reviewer)
+        self.assertIn("evaluate spec compliance first, then code quality", reviewer)
         self.assertIn('"specCompliance": "pass|fail"', reviewer)
         self.assertIn('"codeQuality": "pass|fail"', reviewer)
         self.assertIn('"severity": "high|medium|low"', reviewer)
@@ -89,38 +97,53 @@ class PackSkillsTests(unittest.TestCase):
     def test_leader_references_plan_execution_and_branch_finish_hooks(self):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
-        self.assertIn("plan 已存在且需要按批推进 -> `executing-plans`", content)
         self.assertIn(
-            "用户进入合并/PR/保留/丢弃收尾场景 -> `finishing-a-development-branch`",
+            "plan exists and work should advance in batches -> `executing-plans`",
             content,
         )
-        self.assertIn("有 plan 的 standard/strict 任务可按批执行", content)
         self.assertIn(
-            "完成实现且验证通过后，再进入 `finishing-a-development-branch`", content
+            "user enters merge/PR/keep/discard closing flow -> `finishing-a-development-branch`",
+            content,
+        )
+        self.assertIn(
+            "if a plan exists, standard/strict work may proceed in batches", content
+        )
+        self.assertIn(
+            "after implementation and verification pass, move into `finishing-a-development-branch`",
+            content,
         )
 
     def test_readme_documents_builtin_method_skills(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")
-
-        self.assertIn("## Built-In Method Skills", content)
-        self.assertIn("`change-triage` still decides the workflow skeleton", content)
-        self.assertIn(
-            "pack-native method skills should be preferred over external equivalents",
-            content,
+        workflow = (self.repo_root / "docs" / "project" / "WORKFLOW.md").read_text(
+            encoding="utf-8"
         )
-        self.assertIn("`test-driven-development`", content)
-        self.assertIn("`dispatching-parallel-agents`", content)
-        self.assertIn("`executing-plans`", content)
-        self.assertIn("`finishing-a-development-branch`", content)
+
+        self.assertIn("## Workflow at a Glance", content)
+        self.assertIn("docs/project/WORKFLOW.md", content)
+        self.assertIn("docs/project/ROUTER.md", content)
+        self.assertIn("`change-triage` still decides the workflow skeleton", workflow)
+        self.assertIn(
+            "plugin-native method skills should be preferred over external equivalents",
+            workflow,
+        )
+        self.assertIn("`test-driven-development`", workflow)
+        self.assertIn("`dispatching-parallel-agents`", workflow)
+        self.assertIn("`executing-plans`", workflow)
+        self.assertIn("`finishing-a-development-branch`", workflow)
 
     def test_docs_deemphasize_external_superpowers(self):
         english = (self.repo_root / "README.md").read_text(encoding="utf-8")
+        workflow = (self.repo_root / "docs" / "project" / "WORKFLOW.md").read_text(
+            encoding="utf-8"
+        )
         chinese = (self.repo_root / "docs" / "project" / "README.zh-CN.md").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn("External workflow systems are not needed", english)
-        self.assertIn("外部工作流系统", chinese)
+        self.assertIn("docs/project/WORKFLOW.md", english)
+        self.assertIn("External workflow systems are not needed", workflow)
+        self.assertIn("README.zh-CN", chinese)
 
     def test_docs_use_pack_methods_path_instead_of_superpowers(self):
         self.assertTrue((self.repo_root / "docs" / "pack-methods").exists())
