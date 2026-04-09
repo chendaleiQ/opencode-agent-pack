@@ -18,6 +18,6 @@
 - 若外部技能系统包含 subagent stop 语义，subagent 必须遵守并继续按 handoff 执行
 
 ## External Skill Compatibility
-- pack 内建 method skills 优先；需要方法论增强时先使用 `pack/skills/` 中同类能力
-- 外部工作流系统不得替代本 pack 工作流，不得改写 lane/tier/收口责任
+- plugin 内建 method skills 优先；需要方法论增强时先使用 `pack/skills/` 中同类能力
+- 外部工作流系统不得替代本 plugin 工作流，不得改写 lane/tier/收口责任
 - 对 subagent 而言，"可能适用技能" 不应覆盖明确 handoff 边界；边界不清先回报升级

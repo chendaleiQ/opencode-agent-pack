@@ -2,7 +2,7 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-do-the-thing is a single-entry, auto-routed agent workflow for OpenCode.
+do-the-thing is a cross-platform agent workflow plugin.
 Install once, then only talk to one default strongest entry agent: `leader`.
 The documented workflow routes triage, delegation, escalation, review, verification, and final closure through that single entry.
 
@@ -15,12 +15,20 @@ Most multi-agent setups force users to manually decide:
 - whether a task is risky
 - whether to run fast path or strict path
 
-This pack removes that burden at the workflow level:
+This plugin removes that burden at the workflow level:
 - you give one task to `leader`
-- the pack defines how triage, lane routing, tier routing, subagent dispatch, review/verify, escalation, and final closure should happen
+- do-the-thing defines how triage, lane routing, tier routing, subagent dispatch, review/verify, escalation, and final closure should happen
 
 ## Core Positioning
-This is **do-the-thing**: a single-entry OpenCode workflow with automatic lane+tier routing.
+This is **do-the-thing**: a single-entry agent workflow plugin with automatic lane+tier routing.
+
+## Platform Support
+- OpenCode: full plugin support, including `agent router`
+- Cursor: workflow plugin support without `agent router`
+- Claude Code: workflow plugin support without `agent router`
+- Codex: workflow plugin support without `agent router`
+
+`agent router` is currently OpenCode-only. Other platforms still use the same single-entry workflow, built-in method skills, and prompt system, but without native router integration.
 
 It is **not**:
 - a prompt snippet collection
@@ -82,7 +90,7 @@ Delegated subagents should:
 - report back for escalation when the handoff or boundary is unclear
 
 ## Built-In Method Skills
-This pack now carries its own method skills for deeper execution quality without giving up single-entry workflow control.
+This plugin now carries its own method skills for deeper execution quality without giving up single-entry workflow control.
 
 Current built-in method skills include:
 - `brainstorming`
@@ -99,8 +107,8 @@ Current built-in method skills include:
 `change-triage` still decides the workflow skeleton. These method skills are conditionally inserted as hooks based on task shape, review needs, uncertainty, and completion state.
 
 ## External Skill Systems
-External workflow systems are not needed for this pack's normal operation.
-- this pack remains the workflow source of truth for lane/tier/escalation/closure
+External workflow systems are not needed for this plugin's normal operation.
+- this plugin remains the workflow source of truth for lane/tier/escalation/closure
 - pack-native method skills should be preferred over external equivalents
 - delegated subagents must honor handoff boundaries first and should not re-enter external heavyweight skill chains
 
@@ -155,7 +163,7 @@ cd do-the-thing
 ```
 
 ### Custom Target
-Install pack to any directory:
+Install the plugin to any directory:
 
 ```bash
 bash install.sh --target /path/to/target
@@ -175,7 +183,7 @@ PowerShell:
 - no destructive reset operations
 
 ### Provider Allowlist
-During install, the pack configures a pack-scoped provider allowlist in `settings.json`:
+During install, the plugin configures a plugin-scoped provider allowlist in `settings.json`:
 - provider candidates are detected from local OpenCode state
 - provider selection defaults to all detected local providers, so pressing Enter accepts the full set
 - the selected policy is stored under `doTheThing.allowedProviders`
@@ -188,10 +196,10 @@ After install, user workflow is intentionally simple:
 1. switch to `leader` agent, then ask task directly
 2. `leader` handles triage/routing/escalation within the documented workflow
 3. `leader` provides the final closure summary after review/end-gate checks
-4. use `/providers` whenever you want to update the pack-scoped provider allowlist
+4. use `/providers` whenever you want to update the plugin-scoped provider allowlist
 
 ## Optional Tool: Subagent Model Router
-This pack includes an optional tool at `pack/tools/subagent_model_router.py`.
+This plugin includes an optional tool at `pack/tools/subagent_model_router.py`.
 
 What it does:
 - takes triage JSON as input
@@ -201,7 +209,7 @@ What it does:
 - can auto-pick from available models list
 - can auto-detect provider/models from local opencode config
 - can auto-discover provider-available models and build tier candidates
-- honors the pack-scoped provider allowlist stored in `settings.json`
+- honors the plugin-scoped provider allowlist stored in `settings.json`
 - falls back inside the allowlist if the active provider is disallowed
 - treats an explicit empty `allowedProviders: []` as deny-all until you reconfigure it
 - when `--config-path` points at a custom `opencode.json`, the router reads the sibling `settings.json` from that same directory

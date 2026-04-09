@@ -2,7 +2,7 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-do-the-thing 是一个单入口、自动路由的 OpenCode agent workflow。  
+do-the-thing 是一个跨平台的 agent workflow plugin。  
 安装一次后，你只需要和默认最强入口代理 `leader` 对话。  
 文档中的工作流会把分诊、委派、升级、评审、验证和最终收口都通过这个单一入口来完成。
 
@@ -15,12 +15,20 @@ do-the-thing 是一个单入口、自动路由的 OpenCode agent workflow。
 - 任务是否有风险
 - 走快速路径还是严格路径
 
-这个 pack 在工作流层面消除了这些负担：
+这个 plugin 在工作流层面消除了这些负担：
 - 你只要把任务交给 `leader`
-- pack 会定义分诊、lane 路由、tier 路由、子代理分发、评审/验证、升级与最终收口该如何执行
+- do-the-thing 会定义分诊、lane 路由、tier 路由、子代理分发、评审/验证、升级与最终收口该如何执行
 
 ## 核心定位
-这是 **do-the-thing**：一个**单入口、自动 lane+tier 路由的 OpenCode workflow**。
+这是 **do-the-thing**：一个**单入口、自动 lane+tier 路由的 agent workflow plugin**。
+
+## 平台支持
+- OpenCode：完整 plugin 支持，包括 `agent router`
+- Cursor：支持 workflow plugin，不支持 `agent router`
+- Claude Code：支持 workflow plugin，不支持 `agent router`
+- Codex：支持 workflow plugin，不支持 `agent router`
+
+`agent router` 当前仅支持 OpenCode。其他平台仍可使用同一套单入口工作流、内建方法技能与提示系统，只是没有原生 router 集成。
 
 它**不是**：
 - 提示词片段集合
@@ -82,7 +90,7 @@ do-the-thing 是一个单入口、自动路由的 OpenCode agent workflow。
 - 当交接内容或边界不清晰时，回报并请求升级
 
 ## 内建方法技能
-本 pack 现在内建了一组方法技能，在不放弃单入口工作流控制的前提下，提升执行深度与质量。
+这个 plugin 现在内建了一组方法技能，在不放弃单入口工作流控制的前提下，提升执行深度与质量。
 
 当前内建方法技能包括：
 - `brainstorming`
@@ -99,8 +107,8 @@ do-the-thing 是一个单入口、自动路由的 OpenCode agent workflow。
 `change-triage` 仍负责决定工作流骨架；这些方法技能只会根据任务形态、评审需求、不确定性与收口状态按条件插入。
 
 ## 外部技能系统
-这个 pack 的正常使用不再需要外部工作流系统。
-- 本 pack 仍是 lane/tier/升级/收口的工作流事实来源
+这个 plugin 的正常使用不再需要外部工作流系统。
+- 本 plugin 仍是 lane/tier/升级/收口的工作流事实来源
 - 优先使用 pack 内建方法技能，而不是外部同类技能
 - 子代理必须先遵守交接边界，不要重新进入外部重量级技能链
 
@@ -175,7 +183,7 @@ PowerShell：
 - 不执行破坏性 reset 操作
 
 ### Provider Allowlist
-安装期间，pack 会在 `settings.json` 中配置一个 pack 作用域的 provider allowlist：
+安装期间，plugin 会在 `settings.json` 中配置一个 plugin 作用域的 provider allowlist：
 - provider 候选会从本地 OpenCode 状态中检测
 - 默认会选中全部已检测到的 provider，直接回车即可接受
 - 选中的策略会写入 `doTheThing.allowedProviders`
@@ -188,10 +196,10 @@ PowerShell：
 1. 切换到 `leader` agent，然后直接提任务
 2. `leader` 按文档流程处理分诊/路由/升级
 3. `leader` 在评审/结束门通过后给出最终收口总结
-4. 需要调整 pack 允许使用的 provider 时，使用 `/providers`
+4. 需要调整 plugin 允许使用的 provider 时，使用 `/providers`
 
 ## 可选工具：子代理模型路由器
-本 pack 提供了一个可选工具：`pack/tools/subagent_model_router.py`。
+这个 plugin 提供了一个可选工具：`pack/tools/subagent_model_router.py`。
 
 作用：
 - 输入 triage JSON
@@ -201,7 +209,7 @@ PowerShell：
 - 可从可用模型列表自动选择
 - 可从本地 opencode 配置自动检测 provider/models
 - 可自动发现 provider 可用模型并构建 tier 候选
-- 会遵守 `settings.json` 中 pack 作用域的 provider allowlist
+- 会遵守 `settings.json` 中 plugin 作用域的 provider allowlist
 - 若当前 provider 不在 allowlist 中，会在 allowlist 内部回退，不会越过策略边界
 - 若 `allowedProviders: []` 是显式写入的空列表，则表示全部禁用，直到重新配置
 - 若传入 `--config-path` 指向自定义目录下的 `opencode.json`，router 会同时读取同目录下的 `settings.json`

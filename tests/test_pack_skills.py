@@ -63,8 +63,8 @@ class PackSkillsTests(unittest.TestCase):
     def test_pack_prefers_builtin_skills_over_external_superpowers(self):
         content = (self.repo_root / "pack" / "AGENTS.md").read_text(encoding="utf-8")
 
-        self.assertIn("pack 内建 method skills 优先", content)
-        self.assertIn("外部工作流系统不得替代本 pack 工作流", content)
+        self.assertIn("plugin 内建 method skills 优先", content)
+        self.assertIn("外部工作流系统不得替代本 plugin 工作流", content)
 
     def test_leader_absorbs_subagent_driven_development_discipline(self):
         content = (self.repo_root / "pack" / "agents" / "leader.md").read_text(
