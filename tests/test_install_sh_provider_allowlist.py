@@ -96,7 +96,7 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
                 check=True,
             )
 
-            self.assertIn("Installed opencode-agent-pack", completed.stdout)
+            self.assertIn("Installed do-the-thing", completed.stdout)
 
             settings = json.loads(
                 (config_dir / "settings.json").read_text(encoding="utf-8")
@@ -149,7 +149,7 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
                 check=True,
             )
 
-            self.assertIn("Installed opencode-agent-pack", completed.stdout)
+            self.assertIn("Installed do-the-thing", completed.stdout)
             settings = json.loads(
                 (config_dir / "settings.json").read_text(encoding="utf-8")
             )

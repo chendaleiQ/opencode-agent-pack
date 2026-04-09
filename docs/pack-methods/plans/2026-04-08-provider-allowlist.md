@@ -641,7 +641,7 @@ git commit -m "feat: add provider allowlist command and powershell install suppo
 
 **Files:**
 - Modify: `README.md`
-- Modify: `docs/superpowers/specs/2026-04-08-provider-allowlist-design.md`
+- Modify: `docs/pack-methods/specs/2026-04-08-provider-allowlist-design.md`
 
 - [ ] **Step 1: Update the README install and usage sections**
 
@@ -711,7 +711,7 @@ Expected:
 - [ ] **Step 5: Commit**
 
 ```bash
-git add README.md docs/superpowers/specs/2026-04-08-provider-allowlist-design.md
+git add README.md docs/pack-methods/specs/2026-04-08-provider-allowlist-design.md
 git commit -m "docs: document provider allowlist workflow"
 ```
 
@@ -733,4 +733,3 @@ git commit -m "docs: document provider allowlist workflow"
 ### Type consistency
 - `allowedProviders` is consistently named in helper, router, installers, command docs, and README.
 - The helper CLI flags are used consistently as `--detect-providers`, `--print-allowed-providers`, and `--set-allowed-providers-json`.
-

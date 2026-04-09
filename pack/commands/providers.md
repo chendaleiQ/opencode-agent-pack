@@ -1,7 +1,7 @@
 # Command: /providers（V5）
 
 ## Purpose
-Pack-scoped command for inspecting and updating the `opencode-agent-pack` provider allowlist after install.
+Pack-scoped command for inspecting and updating the `do-the-thing` provider allowlist after install.
 
 ## User Usage
 - `/providers`

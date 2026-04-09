@@ -1,10 +1,12 @@
-# opencode-agent-pack
+# do-the-thing
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-单入口、自动路由的 OpenCode Agent Pack。  
+do-the-thing 是一个单入口、自动路由的 OpenCode agent workflow。  
 安装一次后，你只需要和默认最强入口代理 `leader` 对话。  
 文档中的工作流会把分诊、委派、升级、评审、验证和最终收口都通过这个单一入口来完成。
+
+把任务交给一个 agent，剩下的流程交给系统。
 
 ## 解决什么问题
 多数多代理方案会让用户手动决定：
@@ -18,7 +20,7 @@
 - pack 会定义分诊、lane 路由、tier 路由、子代理分发、评审/验证、升级与最终收口该如何执行
 
 ## 核心定位
-这是一个**单入口、自动 lane+tier 路由的 OpenCode Agent Pack**。
+这是 **do-the-thing**：一个**单入口、自动 lane+tier 路由的 OpenCode workflow**。
 
 它**不是**：
 - 提示词片段集合
@@ -79,12 +81,28 @@
 - 避免为本地任务重复跑分诊或重进重量级工作流技能
 - 当交接内容或边界不清晰时，回报并请求升级
 
-## 外部技能系统集成
-与外部技能系统（包括 superpowers 风格方案）一起使用时：
+## 内建方法技能
+本 pack 现在内建了一组方法技能，在不放弃单入口工作流控制的前提下，提升执行深度与质量。
+
+当前内建方法技能包括：
+- `brainstorming`
+- `dispatching-parallel-agents`
+- `executing-plans`
+- `finishing-a-development-branch`
+- `writing-plans`
+- `systematic-debugging`
+- `test-driven-development`
+- `verification-before-completion`
+- `requesting-code-review`
+- `receiving-code-review`
+
+`change-triage` 仍负责决定工作流骨架；这些方法技能只会根据任务形态、评审需求、不确定性与收口状态按条件插入。
+
+## 外部技能系统
+这个 pack 的正常使用不再需要外部工作流系统。
 - 本 pack 仍是 lane/tier/升级/收口的工作流事实来源
-- 外部技能应视为能力扩展，而不是工作流替代
-- 子代理必须先遵守交接边界，不要重新进入重量级技能链
-- 如果外部系统定义了子代理停止规则（例如 `using-superpowers`），子代理应遵循并继续在角色内执行
+- 优先使用 pack 内建方法技能，而不是外部同类技能
+- 子代理必须先遵守交接边界，不要重新进入外部重量级技能链
 
 ## 为什么高风险任务不会由弱模型起步
 高风险或敏感任务从一开始就需要强边界控制：

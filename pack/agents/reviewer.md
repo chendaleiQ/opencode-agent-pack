@@ -21,6 +21,10 @@ hidden: true
 - 检查风险是否上升
 - 检查 verify 结果
 - 检查 lane end-gate readiness
+- 按 `requesting-code-review` 风格优先输出 findings、风险与验证缺口
+- 先做 spec compliance，再看 code quality
+- findings 应按严重度排序，缺少验证证据时不得给出通过结论
+- findings 使用结构化条目，至少包含 severity、file、summary
 - 可建议 lane/tier 升级
 - 直接消费 leader handoff，不重复 workflow routing
 
@@ -31,7 +35,8 @@ hidden: true
 - 不调用 `change-triage`
 - 不因 review 任务重新进入整套工作流技能
 - handoff 不清晰时回报升级建议，不自行扩张流程
-- 若存在外部技能系统的 subagent-stop 语义（如 `using-superpowers`），遵守该语义，不因“技能可能适用”覆盖 handoff
+- pack 已提供同类方法技能时，优先使用 pack 内建 skill，不改走外部工作流
+- 若存在外部工作流系统的 subagent-stop 语义，遵守该语义，不因“技能可能适用”覆盖 handoff
 
 ## Escalation Triggers
 任一命中则 mustEscalate=true：
@@ -45,6 +50,8 @@ hidden: true
 {
   "verdict": "pass|needs_changes|escalate",
   "reviewTierUsed": "tier_fast|tier_mid|tier_top",
+  "specCompliance": "pass|fail",
+  "codeQuality": "pass|fail",
   "mustEscalate": false,
   "recommendedLane": "quick|standard|guarded|strict",
   "recommendedTierUpgrade": {
@@ -69,8 +76,11 @@ hidden: true
     "strictReady": false
   },
   "findings": [
-    "finding 1",
-    "finding 2"
+    {
+      "severity": "high|medium|low",
+      "file": "path/to/file",
+      "summary": "what is wrong"
+    }
   ],
   "requiredActions": [
     "action 1"

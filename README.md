@@ -1,10 +1,12 @@
-# opencode-agent-pack
+# do-the-thing
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-Single-entry, auto-routed OpenCode Agent Pack.
+do-the-thing is a single-entry, auto-routed agent workflow for OpenCode.
 Install once, then only talk to one default strongest entry agent: `leader`.
 The documented workflow routes triage, delegation, escalation, review, verification, and final closure through that single entry.
+
+Tell one agent the task, let the system handle the rest.
 
 ## What Problem This Solves
 Most multi-agent setups force users to manually decide:
@@ -18,7 +20,7 @@ This pack removes that burden at the workflow level:
 - the pack defines how triage, lane routing, tier routing, subagent dispatch, review/verify, escalation, and final closure should happen
 
 ## Core Positioning
-This is a **single-entry OpenCode Agent Pack with automatic lane+tier routing**.
+This is **do-the-thing**: a single-entry OpenCode workflow with automatic lane+tier routing.
 
 It is **not**:
 - a prompt snippet collection
@@ -79,12 +81,28 @@ Delegated subagents should:
 - avoid rerunning triage or re-entering heavyweight workflow skills for a local task
 - report back for escalation when the handoff or boundary is unclear
 
-## External Skill Integration
-When used together with external skill systems (including superpowers-style setups):
+## Built-In Method Skills
+This pack now carries its own method skills for deeper execution quality without giving up single-entry workflow control.
+
+Current built-in method skills include:
+- `brainstorming`
+- `dispatching-parallel-agents`
+- `executing-plans`
+- `finishing-a-development-branch`
+- `writing-plans`
+- `systematic-debugging`
+- `test-driven-development`
+- `verification-before-completion`
+- `requesting-code-review`
+- `receiving-code-review`
+
+`change-triage` still decides the workflow skeleton. These method skills are conditionally inserted as hooks based on task shape, review needs, uncertainty, and completion state.
+
+## External Skill Systems
+External workflow systems are not needed for this pack's normal operation.
 - this pack remains the workflow source of truth for lane/tier/escalation/closure
-- external skills should be treated as capability extension, not workflow replacement
-- delegated subagents must honor handoff boundaries first; do not re-enter heavyweight skill chains
-- if the external system defines subagent-stop behavior (for example `using-superpowers`), subagents should follow it and continue in-role
+- pack-native method skills should be preferred over external equivalents
+- delegated subagents must honor handoff boundaries first and should not re-enter external heavyweight skill chains
 
 ## Why High-Risk Tasks Are Not Started by Weak Model
 High-risk or sensitive tasks require strong boundary control from the start:

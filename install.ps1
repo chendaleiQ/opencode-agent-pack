@@ -20,7 +20,7 @@ $pythonCandidates = @(
 
 function Show-Usage {
 @"
-opencode-agent-pack installer
+do-the-thing installer
 
 Usage:
     .\install.ps1 [-Target <path>] [-Force]
@@ -180,7 +180,7 @@ function Show-ProviderSelectionPrompt {
         [string[]]$Candidates
     )
 
-    Write-Host "Select allowed providers for opencode-agent-pack"
+    Write-Host "Select allowed providers for do-the-thing"
     for ($idx = 0; $idx -lt $Candidates.Count; $idx++) {
         Write-Host ("[{0}] {1}" -f ($idx + 1), $Candidates[$idx])
     }
@@ -375,7 +375,7 @@ if ($selectionResult.ShouldWrite) {
 
 Write-DefaultAgent -ConfigPath (Join-Path $resolvedTarget "opencode.json")
 
-Write-Host "Installed opencode-agent-pack"
+Write-Host "Installed do-the-thing"
 Write-Host "Mode: $mode"
 Write-Host "Target: $resolvedTarget"
 Write-Host "Done."

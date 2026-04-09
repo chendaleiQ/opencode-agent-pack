@@ -14,7 +14,7 @@ SELECTED_PROVIDERS_JSON="[]"
 
 usage() {
   cat <<'EOF'
-opencode-agent-pack installer
+do-the-thing installer
 
 Usage:
   bash install.sh [--target <path>] [--force]
@@ -94,7 +94,7 @@ import json
 import sys
 
 providers = json.loads(sys.argv[1])
-print("Select allowed providers for opencode-agent-pack")
+print("Select allowed providers for do-the-thing")
 for idx, provider in enumerate(providers, 1):
     print(f"[{idx}] {provider}")
 print("Enter comma-separated numbers, or press Enter for all:")
@@ -250,7 +250,7 @@ fi
 
 write_default_agent "${TARGET}/opencode.json"
 
-echo "Installed opencode-agent-pack"
+echo "Installed do-the-thing"
 echo "Mode: $MODE"
 echo "Target: $TARGET"
 echo "Done."
