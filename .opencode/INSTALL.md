@@ -22,7 +22,7 @@ To pin a specific version:
 
 ```json
 {
-  "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.1.0"]
+  "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.1.1"]
 }
 ```
 
