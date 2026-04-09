@@ -1,6 +1,6 @@
 # do-the-thing
 
-[English](./README.md) | [简体中文](./README.zh-CN.md)
+[English](../../README.md) | [简体中文](./README.zh-CN.md)
 
 do-the-thing 是一个跨平台的 agent workflow plugin。  
 安装一次后，你只需要和默认最强入口代理 `leader` 对话。  
@@ -175,7 +175,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/
 4. 需要调整 plugin 允许使用的 provider 时，使用 `/providers`
 
 ## 可选工具：子代理模型路由器
-这个 plugin 提供了一个可选工具：`pack/tools/subagent_model_router.py`。
+这个 plugin 提供了一个可选工具：`tools/subagent_model_router.py`。
 
 作用：
 - 输入 triage JSON
@@ -192,7 +192,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/
 
 示例：
 ```bash
-PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
+PYTHONPATH=. python3 -m tools.subagent_model_router \
     --auto-detect-config \
     --discover-models \
     --triage-json '{"taskType":"refactor","lane":"quick","analysisTier":"tier_fast","executorTier":"tier_fast","reviewTier":"tier_mid","needsReviewer":false}'
@@ -203,7 +203,7 @@ Router 会从你的 opencode 配置自动检测 provider 和可用模型。
 
 自定义目标目录示例：
 ```bash
-PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
+PYTHONPATH=. python3 -m tools.subagent_model_router \
     --config-path /tmp/my-opencode-pack/opencode.json \
     --auto-detect-config \
     --triage-json '{"taskType":"review","lane":"quick","analysisTier":"tier_mid","executorTier":"tier_mid","reviewTier":"tier_mid","needsReviewer":false}'
@@ -213,7 +213,7 @@ PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
 
 Provider 模型发现（可选）：
 ```bash
-PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
+PYTHONPATH=. python3 -m tools.subagent_model_router \
     --auto-detect-config \
     --discover-models \
     --triage-json '{"taskType":"feature","lane":"strict","analysisTier":"tier_top","executorTier":"tier_mid","reviewTier":"tier_top","needsReviewer":true}'
@@ -260,7 +260,7 @@ PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
 2. 手动运行 triage（必要时继续跑后续流程）
 3. 将实际输出与 case 中的预期输出对比
 4. 使用 `evals/rubric.md` 打分
-5. 记录你检查了什么；若需修复，使用 `MAINTAINING.md`
+5. 记录你检查了什么；若需修复，使用 [`MAINTAINING.md`](./MAINTAINING.md)
 
 仓库默认不提供这些 eval 的 CI 自动化；它们旨在手动执行与评审。
 
@@ -279,11 +279,11 @@ PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
 
 ## 发布策略（简版）
 版本遵循 `MAJOR.MINOR.PATCH`。
-- PATCH：文档/示例/case/安全修复
+- PATCH：文档、评测 case 与安全修复
 - MINOR：向后兼容的路由改进
 - MAJOR：破坏性 lane/tier/schema/install 行为变化
 
-完整规则见 `RELEASE.md`。
+完整规则见 [`RELEASE.md`](./RELEASE.md)。
 
 ## 维护（简版）
 修复顺序：
@@ -292,35 +292,36 @@ PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
 3. 必要时收紧 quick lane
 4. 仅在高风险漏判反复出现时再加硬规则
 
-完整流程见 `MAINTAINING.md`。
+完整流程见 [`MAINTAINING.md`](./MAINTAINING.md)。
 
 ## 适用人群
 - 希望低摩擦自动化的个人开发者
 - 需要一致且安全路由规则的团队
-- 需要可复用默认自动化包的 OSS 仓库
+- 需要可复用默认自动化插件的 OSS 仓库
 - 需要统一任务执行策略的内部工程组织
 
 ## 目录结构
 ```text
 do-the-thing/
 ├─ README.md
-├─ README.zh-CN.md
+├─ docs/
+│  ├─ project/
+│  │  ├─ README.zh-CN.md
+│  │  ├─ RELEASE.md
+│  │  └─ MAINTAINING.md
+│  └─ pack-methods/
 ├─ LICENSE
-├─ RELEASE.md
-├─ MAINTAINING.md
 ├─ evals/
 │  ├─ README.md
 │  ├─ rubric.md
 │  └─ cases/
-├─ examples/
-│  └─ minimal-project/
 ├─ .opencode/
 ├─ .codex/
 ├─ .cursor-plugin/
 ├─ .claude-plugin/
-└─ pack/
-   ├─ AGENTS.md
-   ├─ agents/
-   ├─ commands/
-   └─ skills/
+├─ AGENTS.md
+├─ agents/
+├─ commands/
+├─ skills/
+└─ tools/
 ```

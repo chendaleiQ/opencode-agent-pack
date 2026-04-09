@@ -73,6 +73,27 @@ class PlatformInstallDocsTests(unittest.TestCase):
                 path.exists(), f"legacy install artifact still exists: {path}"
             )
 
+    def test_repository_uses_top_level_core_layout(self):
+        expected = [
+            self.repo_root / "AGENTS.md",
+            self.repo_root / "agents",
+            self.repo_root / "commands",
+            self.repo_root / "skills",
+        ]
+
+        for path in expected:
+            self.assertTrue(path.exists(), f"missing top-level core path: {path}")
+
+        self.assertFalse((self.repo_root / "pack").exists())
+        self.assertFalse((self.repo_root / "bootstrap").exists())
+
+    def test_readme_directory_tree_has_no_examples_or_pack_dir(self):
+        content = (self.repo_root / "README.md").read_text(encoding="utf-8")
+
+        self.assertNotIn("examples/", content)
+        self.assertNotIn("└─ pack/", content)
+        self.assertIn("└─ tools/", content)
+
 
 if __name__ == "__main__":
     unittest.main()

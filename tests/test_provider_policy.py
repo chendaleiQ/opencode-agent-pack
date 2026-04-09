@@ -7,8 +7,8 @@ from pathlib import Path
 from contextlib import redirect_stdout
 from unittest import mock
 
-import pack.tools.provider_policy as provider_policy
-from pack.tools.provider_policy import (
+import tools.provider_policy as provider_policy
+from tools.provider_policy import (
     detect_provider_candidates,
     has_explicit_allowed_providers,
     merge_allowed_providers,

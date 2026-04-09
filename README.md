@@ -1,6 +1,6 @@
 # do-the-thing
 
-[English](./README.md) | [简体中文](./README.zh-CN.md)
+[English](./README.md) | [简体中文](./docs/project/README.zh-CN.md)
 
 do-the-thing is a cross-platform agent workflow plugin.
 Install once, then only talk to one default strongest entry agent: `leader`.
@@ -175,7 +175,7 @@ After install, user workflow is intentionally simple:
 4. use `/providers` whenever you want to update the plugin-scoped provider allowlist
 
 ## Optional Tool: Subagent Model Router
-This plugin includes an optional tool at `pack/tools/subagent_model_router.py`.
+This plugin includes an optional tool at `tools/subagent_model_router.py`.
 
 What it does:
 - takes triage JSON as input
@@ -192,7 +192,7 @@ What it does:
 
 Example:
 ```bash
-PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
+PYTHONPATH=. python3 -m tools.subagent_model_router \
     --auto-detect-config \
     --discover-models \
     --triage-json '{"taskType":"refactor","lane":"quick","analysisTier":"tier_fast","executorTier":"tier_fast","reviewTier":"tier_mid","needsReviewer":false}'
@@ -203,7 +203,7 @@ If the active provider is not allowed, the router warns and falls back to the fi
 
 Custom-target example:
 ```bash
-PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
+PYTHONPATH=. python3 -m tools.subagent_model_router \
     --config-path /tmp/my-opencode-pack/opencode.json \
     --auto-detect-config \
     --triage-json '{"taskType":"review","lane":"quick","analysisTier":"tier_mid","executorTier":"tier_mid","reviewTier":"tier_mid","needsReviewer":false}'
@@ -213,7 +213,7 @@ With `--config-path`, provider policy is read from `/tmp/my-opencode-pack/settin
 
 Provider model discovery (optional):
 ```bash
-PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
+PYTHONPATH=. python3 -m tools.subagent_model_router \
     --auto-detect-config \
     --discover-models \
     --triage-json '{"taskType":"feature","lane":"strict","analysisTier":"tier_top","executorTier":"tier_mid","reviewTier":"tier_top","needsReviewer":true}'
@@ -260,7 +260,7 @@ How to use evals:
 2. Run triage (and the rest of the flow when needed) manually
 3. Compare the observed outputs with the expected outputs in the case file
 4. Score with `evals/rubric.md`
-5. Record what you checked, then use `MAINTAINING.md` if a fix is needed
+5. Record what you checked, then use [`docs/project/MAINTAINING.md`](./docs/project/MAINTAINING.md) if a fix is needed
 
 The repository does not add CI automation for these evals by default; they are intended to be run and reviewed manually.
 
@@ -279,11 +279,11 @@ Reason:
 
 ## Release Strategy (Short)
 Versioning follows `MAJOR.MINOR.PATCH`.
-- PATCH: docs/examples/cases/safe fixes
+- PATCH: docs, eval cases, and safe fixes
 - MINOR: backward-compatible routing improvements
 - MAJOR: breaking lane/tier/schema/install behavior changes
 
-See `RELEASE.md` for full rules.
+See [`docs/project/RELEASE.md`](./docs/project/RELEASE.md) for full rules.
 
 ## Maintenance (Short)
 Fix order:
@@ -292,35 +292,36 @@ Fix order:
 3. tighten quick lane when needed
 4. add hard rule only if repeated high-risk misses
 
-See `MAINTAINING.md` for full process.
+See [`docs/project/MAINTAINING.md`](./docs/project/MAINTAINING.md) for full process.
 
 ## Who This Is For
 - solo developers wanting low-friction automation
 - teams needing consistent safe routing rules
-- OSS repos wanting a reusable default automation pack
+- OSS repos wanting a reusable default automation plugin
 - internal engineering orgs standardizing task execution policy
 
 ## Directory Structure
 ```text
 do-the-thing/
 ├─ README.md
-├─ README.zh-CN.md
+├─ docs/
+│  ├─ project/
+│  │  ├─ README.zh-CN.md
+│  │  ├─ RELEASE.md
+│  │  └─ MAINTAINING.md
+│  └─ pack-methods/
 ├─ LICENSE
-├─ RELEASE.md
-├─ MAINTAINING.md
 ├─ evals/
 │  ├─ README.md
 │  ├─ rubric.md
 │  └─ cases/
-├─ examples/
-│  └─ minimal-project/
 ├─ .opencode/
 ├─ .codex/
 ├─ .cursor-plugin/
 ├─ .claude-plugin/
-└─ pack/
-   ├─ AGENTS.md
-   ├─ agents/
-   ├─ commands/
-   └─ skills/
+├─ AGENTS.md
+├─ agents/
+├─ commands/
+├─ skills/
+└─ tools/
 ```

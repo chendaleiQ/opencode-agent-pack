@@ -7,7 +7,7 @@ class PackSkillsTests(unittest.TestCase):
         self.repo_root = Path(__file__).resolve().parents[1]
 
     def test_pack_includes_builtin_method_skills(self):
-        skills_dir = self.repo_root / "pack" / "skills"
+        skills_dir = self.repo_root / "skills"
         expected = [
             "brainstorming",
             "change-triage",
@@ -28,9 +28,7 @@ class PackSkillsTests(unittest.TestCase):
             )
 
     def test_leader_uses_triage_driven_skill_hooks(self):
-        content = (self.repo_root / "pack" / "agents" / "leader.md").read_text(
-            encoding="utf-8"
-        )
+        content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn("## Built-In Method Skill Hooks", content)
         self.assertIn("needsPlan=true -> `brainstorming` then `writing-plans`", content)
@@ -44,9 +42,7 @@ class PackSkillsTests(unittest.TestCase):
         )
 
     def test_lane_protocols_include_method_skill_ordering(self):
-        content = (self.repo_root / "pack" / "agents" / "leader.md").read_text(
-            encoding="utf-8"
-        )
+        content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn(
             "若 quick 过程中出现失败、异常或原因不清，先插入 `systematic-debugging`",
@@ -61,25 +57,23 @@ class PackSkillsTests(unittest.TestCase):
         self.assertIn("结束前执行 `verification-before-completion`", content)
 
     def test_pack_prefers_builtin_skills_over_external_superpowers(self):
-        content = (self.repo_root / "pack" / "AGENTS.md").read_text(encoding="utf-8")
+        content = (self.repo_root / "AGENTS.md").read_text(encoding="utf-8")
 
         self.assertIn("plugin 内建 method skills 优先", content)
         self.assertIn("外部工作流系统不得替代本 plugin 工作流", content)
 
     def test_leader_absorbs_subagent_driven_development_discipline(self):
-        content = (self.repo_root / "pack" / "agents" / "leader.md").read_text(
-            encoding="utf-8"
-        )
+        content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn("fresh context per task", content)
         self.assertIn("实现者先自检，再进入 reviewer", content)
         self.assertIn("spec compliance first, then code quality", content)
 
     def test_implementer_and_reviewer_reference_tdd_and_review_ordering(self):
-        implementer = (self.repo_root / "pack" / "agents" / "implementer.md").read_text(
+        implementer = (self.repo_root / "agents" / "implementer.md").read_text(
             encoding="utf-8"
         )
-        reviewer = (self.repo_root / "pack" / "agents" / "reviewer.md").read_text(
+        reviewer = (self.repo_root / "agents" / "reviewer.md").read_text(
             encoding="utf-8"
         )
 
@@ -93,9 +87,7 @@ class PackSkillsTests(unittest.TestCase):
         self.assertIn('"summary": "what is wrong"', reviewer)
 
     def test_leader_references_plan_execution_and_branch_finish_hooks(self):
-        content = (self.repo_root / "pack" / "agents" / "leader.md").read_text(
-            encoding="utf-8"
-        )
+        content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn("plan 已存在且需要按批推进 -> `executing-plans`", content)
         self.assertIn(
@@ -123,7 +115,9 @@ class PackSkillsTests(unittest.TestCase):
 
     def test_docs_deemphasize_external_superpowers(self):
         english = (self.repo_root / "README.md").read_text(encoding="utf-8")
-        chinese = (self.repo_root / "README.zh-CN.md").read_text(encoding="utf-8")
+        chinese = (self.repo_root / "docs" / "project" / "README.zh-CN.md").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn("External workflow systems are not needed", english)
         self.assertIn("外部工作流系统", chinese)

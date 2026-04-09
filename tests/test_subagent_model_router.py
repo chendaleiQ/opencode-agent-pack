@@ -7,8 +7,8 @@ from pathlib import Path
 from contextlib import redirect_stderr, redirect_stdout
 from unittest import mock
 
-from pack.tools import subagent_model_router
-from pack.tools.subagent_model_router import (
+from tools import subagent_model_router
+from tools.subagent_model_router import (
     default_settings_path_for_config,
     load_local_opencode_config,
     load_provider_catalog,

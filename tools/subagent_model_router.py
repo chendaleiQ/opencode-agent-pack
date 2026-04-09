@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import error, request
 
-from pack.tools.provider_policy import (
+from tools.provider_policy import (
     detect_provider_candidates,
     has_explicit_allowed_providers,
     load_settings,
@@ -79,7 +79,9 @@ def _parse_json_list(raw: str, name: str) -> List[str]:
     return out
 
 
-def _request_json(url: str, headers: Optional[Dict[str, str]] = None, timeout: int = 20) -> Dict[str, Any]:
+def _request_json(
+    url: str, headers: Optional[Dict[str, str]] = None, timeout: int = 20
+) -> Dict[str, Any]:
     req = request.Request(url)
     if headers:
         for k, v in headers.items():
@@ -186,7 +188,9 @@ def discover_provider_models(provider: str) -> Tuple[List[str], List[str]]:
         elif provider == "ollama":
             models = discover_ollama_models()
         else:
-            warnings.append(f"provider '{provider}' has no built-in discovery; use --available-models-json")
+            warnings.append(
+                f"provider '{provider}' has no built-in discovery; use --available-models-json"
+            )
     except ValueError as exc:
         warnings.append(str(exc))
 
@@ -293,9 +297,7 @@ def load_provider_catalog(cache_dir: Path) -> Dict[str, List[str]]:
         if not isinstance(models, dict):
             continue
 
-        model_ids = sorted(
-            key for key in models.keys() if isinstance(key, str) and key
-        )
+        model_ids = sorted(key for key in models.keys() if isinstance(key, str) and key)
         if model_ids:
             catalog[provider] = model_ids
 
@@ -312,7 +314,9 @@ def resolve_effective_provider(
     current_provider_has_usable_models: bool = False,
 ) -> Tuple[str, List[str]]:
     warnings: List[str] = []
-    effective_allowed = list(dict.fromkeys(allowed_providers if has_allowlist else detected_candidates))
+    effective_allowed = list(
+        dict.fromkeys(allowed_providers if has_allowlist else detected_candidates)
+    )
 
     if provider_arg:
         if has_allowlist and provider_arg not in effective_allowed:
@@ -376,7 +380,9 @@ def resolve_effective_provider(
     if current_provider:
         return current_provider, warnings
 
-    raise ValueError("no provider detected; configure a provider in opencode.json or pass --provider")
+    raise ValueError(
+        "no provider detected; configure a provider in opencode.json or pass --provider"
+    )
 
 
 def ensure_provider_has_usable_models(
@@ -408,9 +414,19 @@ def build_model_map(
             return tier_candidates[tier][0]
         return fallback
 
-    top_fallback = leader_model or (tier_candidates["tier_top"][0] if tier_candidates.get("tier_top") else "")
-    mid_fallback = tier_candidates["tier_mid"][0] if tier_candidates.get("tier_mid") else top_fallback
-    fast_fallback = tier_candidates["tier_fast"][0] if tier_candidates.get("tier_fast") else mid_fallback
+    top_fallback = leader_model or (
+        tier_candidates["tier_top"][0] if tier_candidates.get("tier_top") else ""
+    )
+    mid_fallback = (
+        tier_candidates["tier_mid"][0]
+        if tier_candidates.get("tier_mid")
+        else top_fallback
+    )
+    fast_fallback = (
+        tier_candidates["tier_fast"][0]
+        if tier_candidates.get("tier_fast")
+        else mid_fallback
+    )
 
     model_map = {
         "tier_top": pick("tier_top", top_fallback),
@@ -425,7 +441,9 @@ def build_model_map(
     return model_map
 
 
-def build_tier_candidates(provider: str, available_models: List[str]) -> Dict[str, List[str]]:
+def build_tier_candidates(
+    provider: str, available_models: List[str]
+) -> Dict[str, List[str]]:
     preferred = PREFERRED_MODELS.get(provider, {})
 
     def classify(model: str) -> str:
@@ -518,7 +536,9 @@ def build_dispatch(
             add_role("implementer", executor_tier, "quick implementation minimal path")
 
         if needs_reviewer and "reviewer" not in dispatch_order:
-            add_role("reviewer", review_tier, "review explicitly requested or risk uncertain")
+            add_role(
+                "reviewer", review_tier, "review explicitly requested or risk uncertain"
+            )
     else:
         add_role("analyzer", analysis_tier, "non-quick analysis stage")
         add_role("implementer", executor_tier, "non-quick implementation stage")
@@ -553,9 +573,8 @@ def main() -> int:
         default="",
         help="Provider name (openai/openrouter/anthropic/ollama). If omitted, auto-detect from config/env",
     )
-    default_leader_model = (
-        os.getenv("OPENCODE_LEADER_MODEL", "")
-        or os.getenv("OPENCODE_ORCHESTRATOR_MODEL", "")
+    default_leader_model = os.getenv("OPENCODE_LEADER_MODEL", "") or os.getenv(
+        "OPENCODE_ORCHESTRATOR_MODEL", ""
     )
     parser.add_argument(
         "--leader-model",
@@ -627,7 +646,9 @@ def main() -> int:
         settings_obj = load_settings(default_settings_path_for_config(args.config_path))
         has_allowlist = has_explicit_allowed_providers(settings_obj)
         allowed_providers = read_allowed_providers(settings_obj)
-        detected_candidates = detect_provider_candidates(config_dir, data_dir, cache_dir)
+        detected_candidates = detect_provider_candidates(
+            config_dir, data_dir, cache_dir
+        )
         provider_catalog = load_provider_catalog(cache_dir)
 
         if args.auto_detect_config:
@@ -646,7 +667,11 @@ def main() -> int:
             current_provider
             and (
                 provider_catalog.get(current_provider)
-                or (config_provider and config_provider == current_provider and config_models)
+                or (
+                    config_provider
+                    and config_provider == current_provider
+                    and config_models
+                )
             )
         )
         provider, allowlist_warnings = resolve_effective_provider(
@@ -670,17 +695,23 @@ def main() -> int:
             available_models = list(dict.fromkeys(available_models + config_models))
 
         if args.available_models_json:
-            explicit_models = _parse_json_list(args.available_models_json, "available-models-json")
+            explicit_models = _parse_json_list(
+                args.available_models_json, "available-models-json"
+            )
             available_models = list(dict.fromkeys(explicit_models + available_models))
             if explicit_models:
                 model_sources.append("cli")
 
         if args.discover_openai_models:
             if provider != "openai":
-                raise ValueError("--discover-openai-models only supports provider=openai")
+                raise ValueError(
+                    "--discover-openai-models only supports provider=openai"
+                )
             api_key = os.getenv("OPENAI_API_KEY", "")
             if not api_key:
-                raise ValueError("OPENAI_API_KEY is required for --discover-openai-models")
+                raise ValueError(
+                    "OPENAI_API_KEY is required for --discover-openai-models"
+                )
             discovered = discover_openai_models(api_key)
             available_models = list(dict.fromkeys(available_models + discovered))
             if discovered:
@@ -696,11 +727,17 @@ def main() -> int:
         ensure_provider_has_usable_models(has_allowlist, available_models)
 
         if not available_models:
-            warnings.append("no available models detected; routing uses fallback defaults")
+            warnings.append(
+                "no available models detected; routing uses fallback defaults"
+            )
             if args.fail_on_empty_models:
-                raise ValueError("no available models detected and --fail-on-empty-models is set")
+                raise ValueError(
+                    "no available models detected and --fail-on-empty-models is set"
+                )
 
-        model_selection_mode = "available-models" if available_models else "fallback-defaults"
+        model_selection_mode = (
+            "available-models" if available_models else "fallback-defaults"
+        )
 
         tier_candidates = build_tier_candidates(provider, available_models)
 
