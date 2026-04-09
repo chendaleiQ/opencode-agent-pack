@@ -58,8 +58,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-archive_path="$tmpdir/$(basename "opencode-agent-pack-${VERSION}.tar.gz")"
-asset_url="https://github.com/${REPO}/releases/download/${VERSION}/opencode-agent-pack-${VERSION}.tar.gz"
+archive_path="$tmpdir/$(basename "${VERSION}.tar.gz")"
+asset_url="https://github.com/${REPO}/archive/refs/tags/${VERSION}.tar.gz"
 
 curl -fsSL "$asset_url" -o "$archive_path"
 tar -xzf "$archive_path" -C "$tmpdir"
