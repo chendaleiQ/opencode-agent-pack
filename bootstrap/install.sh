@@ -64,12 +64,12 @@ asset_url="https://github.com/${REPO}/archive/refs/tags/${VERSION}.tar.gz"
 curl -fsSL "$asset_url" -o "$archive_path"
 tar -xzf "$archive_path" -C "$tmpdir"
 
-helper_path="$tmpdir/pack/tools/release_bootstrap.py"
-if [ ! -f "$helper_path" ]; then
-  helper_path="$tmpdir/opencode-agent-pack-${VERSION}/pack/tools/release_bootstrap.py"
-fi
+find_helper() {
+  find "$tmpdir" -name "release_bootstrap.py" -type f 2>/dev/null | head -1
+}
 
-if [ ! -f "$helper_path" ]; then
+helper_path="$(find_helper)"
+if [ -z "$helper_path" ]; then
   echo "Error: release package is missing pack/tools/release_bootstrap.py" >&2
   exit 1
 fi
