@@ -1,8 +1,11 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const MANAGED_PATHS = ['AGENTS.md', 'agents', 'commands', 'skills', 'tools'];
+const PLUGIN_FILE = fileURLToPath(import.meta.url);
+const PACKAGE_ROOT = path.resolve(path.dirname(PLUGIN_FILE), '..', '..');
 
 function listSkillNames(skillsRoot) {
   if (!fs.existsSync(skillsRoot)) return [];
@@ -78,10 +81,10 @@ function syncManagedContent(repoDir, configDir) {
   }
 }
 
-export const DoTheThingPlugin = async ({ directory }) => {
+export const DoTheThingPlugin = async () => {
   const configDir = resolveConfigDir();
-  ensureNoDuplicateSkillSources(directory, configDir);
-  syncManagedContent(directory, configDir);
+  ensureNoDuplicateSkillSources(PACKAGE_ROOT, configDir);
+  syncManagedContent(PACKAGE_ROOT, configDir);
 
   return {
     config: async (config) => {

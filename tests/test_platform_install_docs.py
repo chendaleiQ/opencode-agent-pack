@@ -68,6 +68,15 @@ class PlatformInstallDocsTests(unittest.TestCase):
         )
         self.assertIn("Restart OpenCode", content)
 
+    def test_opencode_plugin_syncs_from_package_root_not_runtime_directory(self):
+        content = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("fileURLToPath(import.meta.url)", content)
+        self.assertIn("syncManagedContent(PACKAGE_ROOT, configDir)", content)
+        self.assertNotIn("syncManagedContent(directory, configDir)", content)
+
     def test_platform_docs_distinguish_native_vs_manual_install(self):
         readme = (self.repo_root / "README.md").read_text(encoding="utf-8")
         codex = (self.repo_root / ".codex" / "INSTALL.md").read_text(encoding="utf-8")
