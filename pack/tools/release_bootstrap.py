@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 
-RELEASE_BASENAME = "opencode-agent-pack"
+RELEASE_BASENAME = "do-the-thing"
 REQUIRED_RELEASE_FILES = ("install.sh", "install.ps1", "pack")
 
 

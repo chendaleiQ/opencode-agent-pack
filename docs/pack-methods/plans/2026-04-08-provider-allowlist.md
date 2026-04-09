@@ -88,15 +88,15 @@ class ProviderPolicyTests(unittest.TestCase):
         merged = merge_allowed_providers(
             {
                 "theme": "solarized",
-                "opencodeAgentPack": {"otherSetting": True},
+                "doTheThing": {"otherSetting": True},
             },
             ["openai", "openrouter"],
         )
 
         self.assertEqual(merged["theme"], "solarized")
-        self.assertEqual(merged["opencodeAgentPack"]["otherSetting"], True)
+        self.assertEqual(merged["doTheThing"]["otherSetting"], True)
         self.assertEqual(
-            merged["opencodeAgentPack"]["allowedProviders"],
+            merged["doTheThing"]["allowedProviders"],
             ["openai", "openrouter"],
         )
 
@@ -153,7 +153,7 @@ def detect_provider_candidates(config_dir: Path, data_dir: Path, cache_dir: Path
 
 
 def read_allowed_providers(settings_obj: Dict[str, Any]) -> List[str]:
-    pack_obj = settings_obj.get("opencodeAgentPack", {})
+    pack_obj = settings_obj.get("doTheThing", {})
     if not isinstance(pack_obj, dict):
         return []
     raw = pack_obj.get("allowedProviders", [])
@@ -164,12 +164,12 @@ def read_allowed_providers(settings_obj: Dict[str, Any]) -> List[str]:
 
 def merge_allowed_providers(settings_obj: Dict[str, Any], allowed: List[str]) -> Dict[str, Any]:
     merged = dict(settings_obj)
-    pack_obj = merged.get("opencodeAgentPack", {})
+    pack_obj = merged.get("doTheThing", {})
     if not isinstance(pack_obj, dict):
         pack_obj = {}
     pack_obj = dict(pack_obj)
     pack_obj["allowedProviders"] = allowed
-    merged["opencodeAgentPack"] = pack_obj
+    merged["doTheThing"] = pack_obj
     return merged
 
 
@@ -451,10 +451,10 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
                 check=True,
             )
 
-            self.assertIn("Installed opencode-agent-pack", completed.stdout)
+            self.assertIn("Installed do-the-thing", completed.stdout)
             settings = json.loads((config_dir / "settings.json").read_text(encoding="utf-8"))
             self.assertEqual(
-                settings["opencodeAgentPack"]["allowedProviders"],
+                settings["doTheThing"]["allowedProviders"],
                 ["openai", "anthropic", "openrouter"],
             )
 
@@ -467,7 +467,7 @@ if __name__ == "__main__":
 
 Run: `python3 -m unittest tests/test_install_sh_provider_allowlist.py -v`
 
-Expected: failure because `settings.json` does not contain `opencodeAgentPack.allowedProviders`
+Expected: failure because `settings.json` does not contain `doTheThing.allowedProviders`
 
 - [ ] **Step 3: Update `install.sh` to detect providers and write default-all settings**
 
@@ -498,7 +498,7 @@ candidate_json="$(detect_provider_candidates)"
 selection_json="$candidate_json"
 
 if [ -t 0 ]; then
-  echo "Select allowed providers for opencode-agent-pack"
+  echo "Select allowed providers for do-the-thing"
   "$PYTHON_BIN" "${SCRIPT_DIR}/pack/tools/provider_policy.py" \
     --config-dir "${HOME}/.config/opencode" \
     --data-dir "${HOME}/.local/share/opencode" \
@@ -569,7 +569,7 @@ $candidateJson = Get-ProviderCandidatesJson
 $selectionJson = $candidateJson
 
 if ($Host.Name -match "ConsoleHost") {
-    Write-Host "Select allowed providers for opencode-agent-pack"
+    Write-Host "Select allowed providers for do-the-thing"
     Write-Host "Press Enter to accept all detected providers."
 } else {
     Write-Host "Non-interactive install detected; defaulting to all detected providers."
@@ -591,8 +591,8 @@ sed -n '1,40p' "$TMP_HOME/.config/opencode/settings.json"
 ```
 
 Expected:
-- installer prints `Installed opencode-agent-pack`
-- `settings.json` includes `opencodeAgentPack.allowedProviders`
+- installer prints `Installed do-the-thing`
+- `settings.json` includes `doTheThing.allowedProviders`
 
 - [ ] **Step 3: Add the `/providers` command file**
 
@@ -600,14 +600,14 @@ Expected:
 # Command: /providers
 
 ## Purpose
-Inspect and update the provider allowlist used by opencode-agent-pack routing.
+Inspect and update the provider allowlist used by do-the-thing routing.
 
 ## Leader Instructions
 - Read `~/.config/opencode/settings.json`
 - Read provider candidates from `~/.local/share/opencode/auth.json`, `~/.cache/opencode/models.json`, and `~/.config/opencode/opencode.json`
 - Show the current allowed provider list
 - Ask the user for the replacement multi-select choice
-- Update `settings.json` so `opencodeAgentPack.allowedProviders` matches the new selection
+- Update `settings.json` so `doTheThing.allowedProviders` matches the new selection
 - Confirm the final saved provider list
 
 ## Scope Boundary
@@ -651,7 +651,7 @@ git commit -m "feat: add provider allowlist command and powershell install suppo
 - installer defaults to global install (`~/.config/opencode/`)
 - installer now configures a pack-scoped provider allowlist during install
 - provider selection defaults to all detected local providers
-- provider policy is stored in `settings.json` under `opencodeAgentPack.allowedProviders`
+- provider policy is stored in `settings.json` under `doTheThing.allowedProviders`
 
 ## Use
 
@@ -683,7 +683,7 @@ TMP_HOME="$(mktemp -d)"
 mkdir -p "$TMP_HOME/.config/opencode" "$TMP_HOME/.local/share/opencode" "$TMP_HOME/.cache/opencode"
 printf '{"provider":"openai","model":"gpt-5.4"}' > "$TMP_HOME/.config/opencode/opencode.json"
 printf '{"openrouter":{"type":"api","key":"secret"}}' > "$TMP_HOME/.local/share/opencode/auth.json"
-printf '{"opencodeAgentPack":{"allowedProviders":["openrouter"]}}' > "$TMP_HOME/.config/opencode/settings.json"
+printf '{"doTheThing":{"allowedProviders":["openrouter"]}}' > "$TMP_HOME/.config/opencode/settings.json"
 printf '{"openrouter":{"models":{"openai/gpt-5-mini":{}}},"openai":{"models":{"gpt-5.4":{}}}}' > "$TMP_HOME/.cache/opencode/models.json"
 HOME="$TMP_HOME" python3 pack/tools/subagent_model_router.py \
   --auto-detect-config \
@@ -720,7 +720,7 @@ git commit -m "docs: document provider allowlist workflow"
 ### Spec coverage
 - Install-time mandatory provider selection with Enter-for-all: covered in Tasks 3 and 4
 - Post-install `/providers` reconfiguration: covered in Task 4
-- `settings.json` storage under `opencodeAgentPack.allowedProviders`: covered in Tasks 1, 3, and 4
+- `settings.json` storage under `doTheThing.allowedProviders`: covered in Tasks 1, 3, and 4
 - Router enforcement and fallback inside allowlist: covered in Task 2 and verified in Task 5
 - Pack scope only, no global OpenCode provider changes: covered in Task 4 and Task 5 diff review
 - No model-level allowlist in this change: kept out of every task

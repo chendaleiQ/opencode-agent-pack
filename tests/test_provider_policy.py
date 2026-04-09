@@ -17,7 +17,9 @@ from pack.tools.provider_policy import (
 
 
 class ProviderPolicyTests(unittest.TestCase):
-    def test_detect_provider_candidates_prefers_local_sources_and_moves_active_provider_first(self):
+    def test_detect_provider_candidates_prefers_local_sources_and_moves_active_provider_first(
+        self,
+    ):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
             config_dir = home / ".config" / "opencode"
@@ -73,33 +75,33 @@ class ProviderPolicyTests(unittest.TestCase):
         merged = merge_allowed_providers(
             {
                 "theme": "solarized",
-                "opencodeAgentPack": {"otherSetting": True},
+                "doTheThing": {"otherSetting": True},
             },
             ["openai", "openrouter"],
         )
 
         self.assertEqual(merged["theme"], "solarized")
-        self.assertEqual(merged["opencodeAgentPack"]["otherSetting"], True)
+        self.assertEqual(merged["doTheThing"]["otherSetting"], True)
         self.assertEqual(
-            merged["opencodeAgentPack"]["allowedProviders"],
+            merged["doTheThing"]["allowedProviders"],
             ["openai", "openrouter"],
         )
 
     def test_merge_allowed_providers_keeps_caller_list_as_is(self):
         merged = merge_allowed_providers({}, ["openai", "", 123, "openrouter"])
 
-        self.assertEqual(merged["opencodeAgentPack"]["allowedProviders"], ["openai", "", 123, "openrouter"])
+        self.assertEqual(
+            merged["doTheThing"]["allowedProviders"], ["openai", "", 123, "openrouter"]
+        )
 
     def test_has_explicit_allowed_providers_distinguishes_missing_from_empty(self):
         self.assertFalse(has_explicit_allowed_providers({}))
-        self.assertFalse(has_explicit_allowed_providers({"opencodeAgentPack": {}}))
+        self.assertFalse(has_explicit_allowed_providers({"doTheThing": {}}))
         self.assertTrue(
-            has_explicit_allowed_providers(
-                {"opencodeAgentPack": {"allowedProviders": []}}
-            )
+            has_explicit_allowed_providers({"doTheThing": {"allowedProviders": []}})
         )
         self.assertEqual(
-            read_allowed_providers({"opencodeAgentPack": {"allowedProviders": []}}),
+            read_allowed_providers({"doTheThing": {"allowedProviders": []}}),
             [],
         )
 
@@ -112,13 +114,16 @@ class ProviderPolicyTests(unittest.TestCase):
                 "--settings-path",
                 str(Path("/tmp/settings.json")),
                 "--set-allowed-providers-json",
-                "[\"openai\", \"\"]",
+                '["openai", ""]',
             ],
         ):
             with self.assertRaises(SystemExit) as ctx:
                 provider_policy.main()
 
-        self.assertEqual(str(ctx.exception), "allowed providers must be a JSON array of non-empty strings")
+        self.assertEqual(
+            str(ctx.exception),
+            "allowed providers must be a JSON array of non-empty strings",
+        )
 
     def test_cli_round_trip_writes_and_reads_settings_json(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -131,7 +136,7 @@ class ProviderPolicyTests(unittest.TestCase):
                     "--settings-path",
                     str(settings_path),
                     "--set-allowed-providers-json",
-                    "[\"openai\", \"openrouter\"]",
+                    '["openai", "openrouter"]',
                 ],
             ):
                 self.assertEqual(provider_policy.main(), 0)
@@ -152,7 +157,9 @@ class ProviderPolicyTests(unittest.TestCase):
 
             self.assertEqual(json.loads(stdout.getvalue()), ["openai", "openrouter"])
             self.assertEqual(
-                json.loads(settings_path.read_text(encoding="utf-8"))["opencodeAgentPack"]["allowedProviders"],
+                json.loads(settings_path.read_text(encoding="utf-8"))["doTheThing"][
+                    "allowedProviders"
+                ],
                 ["openai", "openrouter"],
             )
 
@@ -186,7 +193,7 @@ class ProviderPolicyTests(unittest.TestCase):
                     "--settings-path",
                     str(settings_path),
                     "--set-allowed-providers-json",
-                    "[\"openai\"]",
+                    '["openai"]',
                 ],
             ):
                 with self.assertRaises(SystemExit) as ctx:
@@ -238,9 +245,9 @@ class ProviderPolicyTests(unittest.TestCase):
 
     def test_cli_rejects_structurally_malformed_pack_settings(self):
         malformed_payloads = [
-            '{"opencodeAgentPack": []}',
-            '{"opencodeAgentPack": {"allowedProviders": "openai"}}',
-            '{"opencodeAgentPack": {"allowedProviders": ["openai", 123, ""]}}',
+            '{"doTheThing": []}',
+            '{"doTheThing": {"allowedProviders": "openai"}}',
+            '{"doTheThing": {"allowedProviders": ["openai", 123, ""]}}',
         ]
         for payload in malformed_payloads:
             with self.subTest(payload=payload):
@@ -261,11 +268,14 @@ class ProviderPolicyTests(unittest.TestCase):
                         with self.assertRaises(SystemExit) as ctx:
                             provider_policy.main()
                     expected_message = (
-                        "invalid settings.json: expected opencodeAgentPack to be a JSON object"
-                        if payload == '{"opencodeAgentPack": []}'
+                        "invalid settings.json: expected doTheThing to be a JSON object"
+                        if payload == '{"doTheThing": []}'
                         else "invalid settings.json: expected allowedProviders to be a JSON array"
                     )
-                    if payload == '{"opencodeAgentPack": {"allowedProviders": ["openai", 123, ""]}}':
+                    if (
+                        payload
+                        == '{"doTheThing": {"allowedProviders": ["openai", 123, ""]}}'
+                    ):
                         expected_message = "invalid settings.json: expected allowedProviders entries to be non-empty strings"
                     self.assertEqual(str(ctx.exception), expected_message)
 
@@ -277,17 +287,20 @@ class ProviderPolicyTests(unittest.TestCase):
                             "--settings-path",
                             str(settings_path),
                             "--set-allowed-providers-json",
-                            "[\"openai\"]",
+                            '["openai"]',
                         ],
                     ):
                         with self.assertRaises(SystemExit) as ctx:
                             provider_policy.main()
                     expected_message = (
-                        "invalid settings.json: expected opencodeAgentPack to be a JSON object"
-                        if payload == '{"opencodeAgentPack": []}'
+                        "invalid settings.json: expected doTheThing to be a JSON object"
+                        if payload == '{"doTheThing": []}'
                         else "invalid settings.json: expected allowedProviders to be a JSON array"
                     )
-                    if payload == '{"opencodeAgentPack": {"allowedProviders": ["openai", 123, ""]}}':
+                    if (
+                        payload
+                        == '{"doTheThing": {"allowedProviders": ["openai", 123, ""]}}'
+                    ):
                         expected_message = "invalid settings.json: expected allowedProviders entries to be non-empty strings"
                     self.assertEqual(str(ctx.exception), expected_message)
 

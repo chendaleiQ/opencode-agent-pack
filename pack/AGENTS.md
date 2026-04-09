@@ -1,4 +1,4 @@
-# OpenCode Agent Pack（V5）
+# do-the-thing（V5）
 
 ## Scope
 本文件仅作为 agent 注册表。

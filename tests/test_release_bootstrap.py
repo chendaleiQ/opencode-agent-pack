@@ -14,17 +14,17 @@ class ReleaseBootstrapTests(unittest.TestCase):
     def test_build_release_asset_url_for_tarball(self):
         self.assertEqual(
             build_release_asset_url(
-                repo="chendaleiQ/opencode-agent-pack",
+                repo="chendaleiQ/do-the-thing",
                 version="v1.2.3",
                 archive_format="tar.gz",
             ),
-            "https://github.com/chendaleiQ/opencode-agent-pack/releases/download/v1.2.3/opencode-agent-pack-v1.2.3.tar.gz",
+            "https://github.com/chendaleiQ/do-the-thing/releases/download/v1.2.3/do-the-thing-v1.2.3.tar.gz",
         )
 
     def test_build_release_asset_filename_for_zip(self):
         self.assertEqual(
             build_release_asset_filename("v1.2.3", "zip"),
-            "opencode-agent-pack-v1.2.3.zip",
+            "do-the-thing-v1.2.3.zip",
         )
 
     def test_extract_release_version_reads_tag_name(self):
@@ -49,7 +49,7 @@ class ReleaseBootstrapTests(unittest.TestCase):
     def test_validate_extracted_release_accepts_nested_archive_root(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            extracted = root / "opencode-agent-pack-v1.2.3"
+            extracted = root / "do-the-thing-v1.2.3"
             (extracted / "pack").mkdir(parents=True)
             (extracted / "pack" / "AGENTS.md").write_text(
                 "agents",

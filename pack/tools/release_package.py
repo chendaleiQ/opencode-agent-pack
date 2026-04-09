@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 RELEASE_ITEMS = ("install.sh", "install.ps1", "pack")
-RELEASE_BASENAME = "opencode-agent-pack"
+RELEASE_BASENAME = "do-the-thing"
 
 
 def build_release_archives(repo_root: Path, out_dir: Path, version: str):

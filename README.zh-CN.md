@@ -116,24 +116,24 @@ do-the-thing 是一个单入口、自动路由的 OpenCode agent workflow。
 无需 clone 仓库，直接从最新 GitHub Release 安装：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
 ```
 
 PowerShell：
 ```powershell
-irm https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.ps1 | iex
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
 ```
 
-如果要安装固定版本而不是 `latest`，先设置 `OPENCODE_AGENT_PACK_VERSION`：
+如果要安装固定版本而不是 `latest`，先设置 `DO_THE_THING_VERSION`：
 
 ```bash
-OPENCODE_AGENT_PACK_VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash
+DO_THE_THING_VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
 ```
 
 PowerShell：
 ```powershell
-$env:OPENCODE_AGENT_PACK_VERSION = "v1.0.0"
-irm https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.ps1 | iex
+$env:DO_THE_THING_VERSION = "v1.0.0"
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
 ```
 
 bootstrap 脚本会下载对应的 GitHub Release 压缩包，解压到临时目录后再调用包内的本地安装器。
@@ -142,15 +142,15 @@ bootstrap 脚本会下载对应的 GitHub Release 压缩包，解压到临时目
 适用于离线安装、本地调试或贡献者工作流：
 
 ```bash
-git clone git@github.com:chendaleiQ/opencode-agent-pack.git
-cd opencode-agent-pack
+git clone git@github.com:chendaleiQ/do-the-thing.git
+cd do-the-thing
 bash install.sh
 ```
 
 PowerShell：
 ```powershell
-git clone git@github.com:chendaleiQ/opencode-agent-pack.git
-cd opencode-agent-pack
+git clone git@github.com:chendaleiQ/do-the-thing.git
+cd do-the-thing
 .\install.ps1
 ```
 
@@ -178,7 +178,7 @@ PowerShell：
 安装期间，pack 会在 `settings.json` 中配置一个 pack 作用域的 provider allowlist：
 - provider 候选会从本地 OpenCode 状态中检测
 - 默认会选中全部已检测到的 provider，直接回车即可接受
-- 选中的策略会写入 `opencodeAgentPack.allowedProviders`
+- 选中的策略会写入 `doTheThing.allowedProviders`
 - 如果一个 provider 都没检测到，安装器会保留现有 allowlist，除非你显式确认写入空列表
 - 安装后可通过 `/providers` 查看或重新配置允许路由到哪些 provider
 
@@ -318,7 +318,7 @@ PYTHONPATH=. python3 -m pack.tools.subagent_model_router \
 
 ## 目录结构
 ```text
-opencode-agent-pack/
+do-the-thing/
 ├─ README.md
 ├─ README.zh-CN.md
 ├─ LICENSE

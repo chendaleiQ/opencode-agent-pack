@@ -116,24 +116,24 @@ High-risk or sensitive tasks require strong boundary control from the start:
 Install from the latest GitHub Release without cloning the repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
 ```
 
 PowerShell:
 ```powershell
-irm https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.ps1 | iex
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
 ```
 
-To install a fixed release instead of `latest`, set `OPENCODE_AGENT_PACK_VERSION` before running the bootstrap command:
+To install a fixed release instead of `latest`, set `DO_THE_THING_VERSION` before running the bootstrap command:
 
 ```bash
-OPENCODE_AGENT_PACK_VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash
+DO_THE_THING_VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
 ```
 
 PowerShell:
 ```powershell
-$env:OPENCODE_AGENT_PACK_VERSION = "v1.0.0"
-irm https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.ps1 | iex
+$env:DO_THE_THING_VERSION = "v1.0.0"
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
 ```
 
 The bootstrap script downloads the matching GitHub Release archive, extracts it into a temporary directory, and then runs the packaged local installer.
@@ -142,15 +142,15 @@ The bootstrap script downloads the matching GitHub Release archive, extracts it 
 For offline use, local testing, or contributor workflows:
 
 ```bash
-git clone git@github.com:chendaleiQ/opencode-agent-pack.git
-cd opencode-agent-pack
+git clone git@github.com:chendaleiQ/do-the-thing.git
+cd do-the-thing
 bash install.sh
 ```
 
 PowerShell:
 ```powershell
-git clone git@github.com:chendaleiQ/opencode-agent-pack.git
-cd opencode-agent-pack
+git clone git@github.com:chendaleiQ/do-the-thing.git
+cd do-the-thing
 .\install.ps1
 ```
 
@@ -178,7 +178,7 @@ PowerShell:
 During install, the pack configures a pack-scoped provider allowlist in `settings.json`:
 - provider candidates are detected from local OpenCode state
 - provider selection defaults to all detected local providers, so pressing Enter accepts the full set
-- the selected policy is stored under `opencodeAgentPack.allowedProviders`
+- the selected policy is stored under `doTheThing.allowedProviders`
 - if no providers are detected, the installer leaves the existing allowlist unchanged unless you explicitly confirm writing an empty list
 - after install, use `/providers` to review or reconfigure the allowed routing providers
 
@@ -318,7 +318,7 @@ See `MAINTAINING.md` for full process.
 
 ## Directory Structure
 ```text
-opencode-agent-pack/
+do-the-thing/
 ├─ README.md
 ├─ README.zh-CN.md
 ├─ LICENSE

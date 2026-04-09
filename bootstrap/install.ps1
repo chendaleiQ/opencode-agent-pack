@@ -5,10 +5,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Repo = "chendaleiQ/opencode-agent-pack"
+$Repo = "chendaleiQ/do-the-thing"
 
-if ($env:OPENCODE_AGENT_PACK_VERSION) {
-    $Version = $env:OPENCODE_AGENT_PACK_VERSION
+if ($env:DO_THE_THING_VERSION) {
+    $Version = $env:DO_THE_THING_VERSION
 }
 
 function Get-LatestReleaseVersion {
@@ -27,15 +27,15 @@ $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid(
 New-Item -ItemType Directory -Path $TempRoot | Out-Null
 
 try {
-    $ArchivePath = Join-Path $TempRoot ("opencode-agent-pack-{0}.zip" -f $Version)
-    $AssetUrl = "https://github.com/$Repo/releases/download/$Version/opencode-agent-pack-$Version.zip"
+    $ArchivePath = Join-Path $TempRoot ("do-the-thing-{0}.zip" -f $Version)
+    $AssetUrl = "https://github.com/$Repo/releases/download/$Version/do-the-thing-$Version.zip"
 
     Invoke-WebRequest -Uri $AssetUrl -OutFile $ArchivePath
     Expand-Archive -Path $ArchivePath -DestinationPath $TempRoot -Force
 
     $HelperPath = Join-Path $TempRoot "pack/tools/release_bootstrap.py"
     if (-not (Test-Path $HelperPath -PathType Leaf)) {
-        $HelperPath = Join-Path $TempRoot "opencode-agent-pack-$Version/pack/tools/release_bootstrap.py"
+        $HelperPath = Join-Path $TempRoot "do-the-thing-$Version/pack/tools/release_bootstrap.py"
     }
 
     if (-not (Test-Path $HelperPath -PathType Leaf)) {

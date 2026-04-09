@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a release-backed one-command install flow that lets users install `opencode-agent-pack` without cloning the repository.
+**Goal:** Add a release-backed one-command install flow that lets users install `do-the-thing` without cloning the repository.
 
 **Architecture:** Keep `install.sh` and `install.ps1` as the canonical installers that mutate the target directory. Add a small bootstrap layer for shell and PowerShell that only resolves a GitHub Release asset, downloads and extracts it, then hands off to the packaged local installer. Add a small Python helper for URL/layout validation so the bootstrap logic stays thin and testable, then document the new install flow first in both READMEs.
 
@@ -54,11 +54,11 @@ class ReleaseBootstrapTests(unittest.TestCase):
     def test_build_release_asset_url_for_tarball(self):
         self.assertEqual(
             build_release_asset_url(
-                repo="chendaleiQ/opencode-agent-pack",
+                repo="chendaleiQ/do-the-thing",
                 version="v1.2.3",
                 archive_format="tar.gz",
             ),
-            "https://github.com/chendaleiQ/opencode-agent-pack/releases/download/v1.2.3/opencode-agent-pack-v1.2.3.tar.gz",
+            "https://github.com/chendaleiQ/do-the-thing/releases/download/v1.2.3/do-the-thing-v1.2.3.tar.gz",
         )
 
     def test_validate_extracted_release_requires_packaged_installers(self):
@@ -86,7 +86,7 @@ Expected: FAIL with `ModuleNotFoundError` or missing symbol errors for `pack.too
 from pathlib import Path
 
 
-RELEASE_BASENAME = "opencode-agent-pack"
+RELEASE_BASENAME = "do-the-thing"
 REQUIRED_RELEASE_FILES = ("install.sh", "install.ps1", "pack")
 
 
@@ -108,7 +108,7 @@ def validate_extracted_release(root: Path) -> Path:
 from pathlib import Path
 
 
-RELEASE_BASENAME = "opencode-agent-pack"
+RELEASE_BASENAME = "do-the-thing"
 REQUIRED_RELEASE_FILES = ("install.sh", "install.ps1", "pack")
 
 
@@ -168,7 +168,7 @@ class ReleaseBootstrapScriptShapeTests(unittest.TestCase):
     def test_build_release_asset_filename_for_zip(self):
         self.assertEqual(
             build_release_asset_filename("v1.2.3", "zip"),
-            "opencode-agent-pack-v1.2.3.zip",
+            "do-the-thing-v1.2.3.zip",
         )
 ```
 
@@ -183,18 +183,18 @@ Expected: FAIL if `build_release_asset_filename` is not yet exposed or validated
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="chendaleiQ/opencode-agent-pack"
+REPO="chendaleiQ/do-the-thing"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-VERSION="${OPENCODE_AGENT_PACK_VERSION:-latest}"
+VERSION="${DO_THE_THING_VERSION:-latest}"
 
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/opencode-agent-pack.XXXXXX")"
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/do-the-thing.XXXXXX")"
 cleanup() {
   rm -rf "$tmpdir"
 }
 trap cleanup EXIT
 
 if [ "$VERSION" = "latest" ]; then
-  echo "Error: bootstrap latest resolution is not implemented yet. Set OPENCODE_AGENT_PACK_VERSION=vX.Y.Z." >&2
+  echo "Error: bootstrap latest resolution is not implemented yet. Set DO_THE_THING_VERSION=vX.Y.Z." >&2
   exit 1
 fi
 
@@ -213,15 +213,15 @@ bash "$release_root/install.sh" "$@"
 ```powershell
 $ErrorActionPreference = "Stop"
 
-$Repo = "chendaleiQ/opencode-agent-pack"
-$Version = if ($env:OPENCODE_AGENT_PACK_VERSION) { $env:OPENCODE_AGENT_PACK_VERSION } else { "latest" }
+$Repo = "chendaleiQ/do-the-thing"
+$Version = if ($env:DO_THE_THING_VERSION) { $env:DO_THE_THING_VERSION } else { "latest" }
 $Python = if ($env:PYTHON_BIN) { $env:PYTHON_BIN } else { "python3" }
 $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $TempRoot | Out-Null
 
 try {
     if ($Version -eq "latest") {
-        throw "bootstrap latest resolution is not implemented yet. Set OPENCODE_AGENT_PACK_VERSION=vX.Y.Z."
+        throw "bootstrap latest resolution is not implemented yet. Set DO_THE_THING_VERSION=vX.Y.Z."
     }
 
     $AssetUrl = & $Python -c "from pack.tools.release_bootstrap import build_release_asset_url; import sys; print(build_release_asset_url(sys.argv[1], sys.argv[2], 'zip'))" $Repo $Version
@@ -242,14 +242,14 @@ finally {
 
 ```bash
 helper_path="$tmpdir/release_bootstrap.py"
-curl -fsSL "https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/${VERSION}/pack/tools/release_bootstrap.py" -o "$helper_path"
+curl -fsSL "https://raw.githubusercontent.com/chendaleiQ/do-the-thing/${VERSION}/pack/tools/release_bootstrap.py" -o "$helper_path"
 asset_url="$($PYTHON_BIN "$helper_path" --repo "$REPO" --version "$VERSION" --archive-format tar.gz --print-asset-url)"
 release_root="$($PYTHON_BIN "$helper_path" --validate-extracted-root "$tmpdir")"
 ```
 
 ```powershell
 $HelperPath = Join-Path $TempRoot "release_bootstrap.py"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/$Version/pack/tools/release_bootstrap.py" -OutFile $HelperPath
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/chendaleiQ/do-the-thing/$Version/pack/tools/release_bootstrap.py" -OutFile $HelperPath
 $AssetUrl = & $Python $HelperPath --repo $Repo --version $Version --archive-format zip --print-asset-url
 $ReleaseRoot = & $Python $HelperPath --validate-extracted-root $TempRoot
 ```
@@ -328,8 +328,8 @@ RELEASE_ITEMS = ("install.sh", "install.ps1", "pack")
 
 def build_release_archives(repo_root: Path, out_dir: Path, version: str):
     out_dir.mkdir(parents=True, exist_ok=True)
-    tar_path = out_dir / f"opencode-agent-pack-{version}.tar.gz"
-    zip_path = out_dir / f"opencode-agent-pack-{version}.zip"
+    tar_path = out_dir / f"do-the-thing-{version}.tar.gz"
+    zip_path = out_dir / f"do-the-thing-{version}.zip"
 
     with tarfile.open(tar_path, "w:gz") as tar:
         for item in RELEASE_ITEMS:
@@ -406,16 +406,16 @@ Replace the current install section shape with:
 Install from a GitHub Release without cloning the repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
 ```
 
 PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.ps1 | iex
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
 ```
 
-Set `OPENCODE_AGENT_PACK_VERSION=vX.Y.Z` before running the command when you want a fixed release version.
+Set `DO_THE_THING_VERSION=vX.Y.Z` before running the command when you want a fixed release version.
 ```
 
 - [ ] **Step 2: Keep the local installer path but demote it to manual/offline install**
@@ -428,8 +428,8 @@ Add a follow-up subsection like:
 For offline use, local testing, or contributor workflows:
 
 ```bash
-git clone git@github.com:chendaleiQ/opencode-agent-pack.git
-cd opencode-agent-pack
+git clone git@github.com:chendaleiQ/do-the-thing.git
+cd do-the-thing
 bash install.sh
 ```
 ```
@@ -444,16 +444,16 @@ Use this structure in `README.zh-CN.md`:
 无需 clone 仓库，直接从 GitHub Release 安装：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
 ```
 
 PowerShell：
 
 ```powershell
-irm https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.ps1 | iex
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.ps1 | iex
 ```
 
-如需固定版本，先设置 `OPENCODE_AGENT_PACK_VERSION=vX.Y.Z`。
+如需固定版本，先设置 `DO_THE_THING_VERSION=vX.Y.Z`。
 ```
 
 - [ ] **Step 4: Read the install sections back and verify wording matches shipped behavior**
@@ -500,8 +500,8 @@ Expected: no output
 
 - [ ] **Step 3: Build release archives locally to verify packaging works end-to-end**
 
-Run: `python3 -m pack.tools.release_package --out-dir /tmp/opencode-agent-pack-release --version v0.0.0-test`
-Expected: creates `/tmp/opencode-agent-pack-release/opencode-agent-pack-v0.0.0-test.tar.gz` and `.zip`
+Run: `python3 -m pack.tools.release_package --out-dir /tmp/do-the-thing-release --version v0.0.0-test`
+Expected: creates `/tmp/do-the-thing-release/do-the-thing-v0.0.0-test.tar.gz` and `.zip`
 
 - [ ] **Step 4: Inspect the built archives by running the archive tests again**
 
@@ -526,4 +526,4 @@ git commit -m "feat: add release bootstrap installation flow"
 - Placeholder scan: no `TODO`, `TBD`, or "implement later" placeholders remain in tasks.
 - Type consistency check:
   - helper names are consistent across tasks: `build_release_asset_filename`, `build_release_asset_url`, `validate_extracted_release`, `build_release_archives`
-  - archive filenames consistently use `opencode-agent-pack-<version>.<ext>`
+  - archive filenames consistently use `do-the-thing-<version>.<ext>`

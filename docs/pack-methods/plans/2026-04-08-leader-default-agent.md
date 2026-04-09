@@ -365,13 +365,13 @@ Expected: PASS
 
 - [ ] **Step 3: Run a manual smoke check of installed agent files**
 
-Run: `bash install.sh --target "/tmp/opencode-agent-pack-smoke" --force`
-Expected: installer succeeds and writes `/tmp/opencode-agent-pack-smoke/opencode.json`
+Run: `bash install.sh --target "/tmp/do-the-thing-smoke" --force`
+Expected: installer succeeds and writes `/tmp/do-the-thing-smoke/opencode.json`
 
 Run: `python3 - <<'PY'
 import json
 from pathlib import Path
-cfg = Path('/tmp/opencode-agent-pack-smoke/opencode.json')
+cfg = Path('/tmp/do-the-thing-smoke/opencode.json')
 print(json.loads(cfg.read_text(encoding='utf-8')).get('default_agent'))
 PY`
 Expected: output is `leader`

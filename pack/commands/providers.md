@@ -15,7 +15,7 @@ Pack-scoped command for inspecting and updating the `do-the-thing` provider allo
 5. Write only `settings.json` through the shared provider policy helper
 
 ## Scope Boundary
-- Update only `settings.json` under `opencodeAgentPack.allowedProviders`
+- Update only `settings.json` under `doTheThing.allowedProviders`
 - Never rewrite `opencode.json`
 - Never copy, print, or persist values from `auth.json`
 - Provider names only: no tokens, no OAuth payloads, no raw auth content

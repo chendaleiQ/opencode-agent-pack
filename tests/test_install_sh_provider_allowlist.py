@@ -80,7 +80,7 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
                 json.dumps(
                     {
                         "theme": "solarized",
-                        "opencodeAgentPack": {"otherSetting": True},
+                        "doTheThing": {"otherSetting": True},
                     }
                 ),
                 encoding="utf-8",
@@ -102,9 +102,9 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
                 (config_dir / "settings.json").read_text(encoding="utf-8")
             )
             self.assertEqual(settings["theme"], "solarized")
-            self.assertEqual(settings["opencodeAgentPack"]["otherSetting"], True)
+            self.assertEqual(settings["doTheThing"]["otherSetting"], True)
             self.assertEqual(
-                settings["opencodeAgentPack"]["allowedProviders"],
+                settings["doTheThing"]["allowedProviders"],
                 ["openai", "anthropic", "openrouter"],
             )
             self.assertEqual(
@@ -133,7 +133,7 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
                 json.dumps(
                     {
                         "theme": "solarized",
-                        "opencodeAgentPack": {"allowedProviders": ["openrouter"]},
+                        "doTheThing": {"allowedProviders": ["openrouter"]},
                     }
                 ),
                 encoding="utf-8",
@@ -155,7 +155,7 @@ class InstallShProviderAllowlistTests(unittest.TestCase):
             )
             self.assertEqual(settings["theme"], "solarized")
             self.assertEqual(
-                settings["opencodeAgentPack"]["allowedProviders"],
+                settings["doTheThing"]["allowedProviders"],
                 ["openrouter"],
             )
 

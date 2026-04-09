@@ -1,7 +1,7 @@
 # Provider Allowlist Design
 
 ## Summary
-Add a pack-scoped provider allowlist that can be configured during install and later updated via a command. The allowlist limits which providers `opencode-agent-pack` may use for routing and model selection. It does not change global OpenCode provider behavior outside this pack.
+Add a pack-scoped provider allowlist that can be configured during install and later updated via a command. The allowlist limits which providers `do-the-thing` may use for routing and model selection. It does not change global OpenCode provider behavior outside this pack.
 Status: implemented in Tasks 1-4; the notes below reflect the shipped behavior and the final acceptance criteria for this change.
 
 ## Background
@@ -45,7 +45,7 @@ Expected behavior:
 Example prompt shape:
 
 ```text
-Select allowed providers for opencode-agent-pack
+Select allowed providers for do-the-thing
 [1] openai
 [2] openrouter
 [3] minimax-cn-coding-plan
@@ -74,7 +74,7 @@ Final shape:
 
 ```json
 {
-  "opencodeAgentPack": {
+  "doTheThing": {
     "allowedProviders": ["openai", "openrouter"]
   }
 }
@@ -156,7 +156,7 @@ The command updates only pack configuration. It must not rewrite OpenCode auth, 
 Update `install.sh` to:
 - discover provider candidates
 - prompt for selection in interactive mode
-- write or update `settings.json` with `opencodeAgentPack.allowedProviders`
+- write or update `settings.json` with `doTheThing.allowedProviders`
 - preserve existing unrelated settings
 
 ### PowerShell Installer
@@ -179,7 +179,7 @@ Current preserve behavior for `opencode.json` and `settings.json` stays in place
 - Interactive install asks for allowed providers and supports multi-select.
 - Enter during install selects all detected provider candidates.
 - Non-interactive install defaults to all detected provider candidates without blocking.
-- `settings.json` stores provider allowlist under `opencodeAgentPack.allowedProviders`.
+- `settings.json` stores provider allowlist under `doTheThing.allowedProviders`.
 - `/providers` can display and update the allowlist after install.
 - Router uses only allowed providers for provider selection and model discovery.
 - No secrets are copied from `auth.json`.
@@ -194,7 +194,7 @@ Current preserve behavior for `opencode.json` and `settings.json` stays in place
 - surfacing per-provider fast-model suitability in the command flow
 
 ## Final Acceptance Notes
-- Install-time provider selection writes a pack-scoped allowlist to `settings.json` under `opencodeAgentPack.allowedProviders`.
+- Install-time provider selection writes a pack-scoped allowlist to `settings.json` under `doTheThing.allowedProviders`.
 - When the installer runs non-interactively, it defaults to all detected local providers and still writes the explicit allowlist.
 - `/providers` is the supported post-install path for reviewing and updating the allowed routing providers.
 - The router is constrained by the pack-scoped allowlist and falls back inside that allowlist if the active provider is disallowed.

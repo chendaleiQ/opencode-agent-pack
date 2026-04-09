@@ -83,8 +83,8 @@ Cons:
 ### Release Artifacts
 Each GitHub Release should publish installable archives:
 
-- `opencode-agent-pack-<version>.tar.gz`
-- `opencode-agent-pack-<version>.zip`
+- `do-the-thing-<version>.tar.gz`
+- `do-the-thing-<version>.zip`
 
 The archive contents should include the files required for local installation:
 

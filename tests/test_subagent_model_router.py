@@ -42,7 +42,10 @@ class SubagentModelRouterTests(unittest.TestCase):
         )
 
         self.assertEqual(provider, "openrouter")
-        self.assertEqual(warnings, ["current provider 'openai' is not allowed; fell back to 'openrouter'"])
+        self.assertEqual(
+            warnings,
+            ["current provider 'openai' is not allowed; fell back to 'openrouter'"],
+        )
 
     def test_allowed_current_provider_steps_aside_for_usable_allowed_provider(self):
         provider, warnings = resolve_effective_provider(
@@ -57,7 +60,9 @@ class SubagentModelRouterTests(unittest.TestCase):
         self.assertEqual(provider, "openrouter")
         self.assertEqual(
             warnings,
-            ["current provider 'openai' has no usable models; fell back to 'openrouter'"],
+            [
+                "current provider 'openai' has no usable models; fell back to 'openrouter'"
+            ],
         )
 
     def test_allowed_current_provider_with_config_models_stays_primary(self):
@@ -71,7 +76,9 @@ class SubagentModelRouterTests(unittest.TestCase):
             cache_dir.mkdir(parents=True)
 
             (config_dir / "settings.json").write_text(
-                json.dumps({"opencodeAgentPack": {"allowedProviders": ["openai", "openrouter"]}}),
+                json.dumps(
+                    {"doTheThing": {"allowedProviders": ["openai", "openrouter"]}}
+                ),
                 encoding="utf-8",
             )
             (config_dir / "opencode.json").write_text(
@@ -113,7 +120,9 @@ class SubagentModelRouterTests(unittest.TestCase):
             cache_dir.mkdir(parents=True)
 
             (config_dir / "settings.json").write_text(
-                json.dumps({"opencodeAgentPack": {"allowedProviders": ["openai", "openrouter"]}}),
+                json.dumps(
+                    {"doTheThing": {"allowedProviders": ["openai", "openrouter"]}}
+                ),
                 encoding="utf-8",
             )
             (config_dir / "opencode.json").write_text(
@@ -186,7 +195,7 @@ class SubagentModelRouterTests(unittest.TestCase):
             custom_dir.mkdir(parents=True)
 
             (custom_dir / "settings.json").write_text(
-                json.dumps({"opencodeAgentPack": {"allowedProviders": ["openrouter"]}}),
+                json.dumps({"doTheThing": {"allowedProviders": ["openrouter"]}}),
                 encoding="utf-8",
             )
             (custom_dir / "opencode.json").write_text(
@@ -243,7 +252,7 @@ class SubagentModelRouterTests(unittest.TestCase):
                 json.dumps(
                     {
                         "provider": "openrouter",
-                        "opencodeAgentPack": {"allowedProviders": ["openai"]},
+                        "doTheThing": {"allowedProviders": ["openai"]},
                     }
                 ),
                 encoding="utf-8",
@@ -263,7 +272,7 @@ class SubagentModelRouterTests(unittest.TestCase):
             cache_dir.mkdir(parents=True)
 
             (config_dir / "settings.json").write_text(
-                json.dumps({"opencodeAgentPack": {"allowedProviders": ["openai"]}}),
+                json.dumps({"doTheThing": {"allowedProviders": ["openai"]}}),
                 encoding="utf-8",
             )
             (config_dir / "opencode.json").write_text(
@@ -299,7 +308,7 @@ class SubagentModelRouterTests(unittest.TestCase):
             cache_dir.mkdir(parents=True)
 
             (config_dir / "settings.json").write_text(
-                json.dumps({"opencodeAgentPack": {"allowedProviders": ["openrouter"]}}),
+                json.dumps({"doTheThing": {"allowedProviders": ["openrouter"]}}),
                 encoding="utf-8",
             )
             (config_dir / "opencode.json").write_text(

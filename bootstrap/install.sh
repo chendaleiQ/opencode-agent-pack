@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="chendaleiQ/opencode-agent-pack"
+REPO="chendaleiQ/do-the-thing"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-VERSION="${OPENCODE_AGENT_PACK_VERSION:-latest}"
+VERSION="${DO_THE_THING_VERSION:-latest}"
 INSTALL_ARGS=()
 
 usage() {
   cat <<'EOF'
-opencode-agent-pack bootstrap installer
+do-the-thing bootstrap installer
 
 Usage:
   bash install.sh [--version <tag>] [installer args...]
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash
-  curl -fsSL https://raw.githubusercontent.com/chendaleiQ/opencode-agent-pack/main/bootstrap/install.sh | bash -s -- --version v1.0.0 --force
+  curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/main/bootstrap/install.sh | bash -s -- --version v1.0.0 --force
 EOF
 }
 
@@ -52,7 +52,7 @@ if [ "$VERSION" = "latest" ]; then
   VERSION="$(resolve_latest_version)"
 fi
 
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/opencode-agent-pack.XXXXXX")"
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/do-the-thing.XXXXXX")"
 cleanup() {
   rm -rf "$tmpdir"
 }
