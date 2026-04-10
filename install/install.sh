@@ -8,14 +8,98 @@ OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-${HOME}/.config/opencode}"
 DTT_PLUGIN_REF="${DTT_PLUGIN_REF:-}"
 
 usage() {
-  echo "usage: install.sh <opencode|claude|codex>" >&2
+  echo "usage: install.sh <opencode|codex>" >&2
   exit 1
 }
+
+# ---------------------------------------------------------------------------
+# Dependency helpers
+# ---------------------------------------------------------------------------
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+auto_install_package() {
+  local pkg="$1"
+  echo "Attempting to install $pkg ..." >&2
+
+  case "$(uname -s)" in
+    Darwin)
+      if command_exists brew; then
+        brew install "$pkg"
+      else
+        echo "Missing $pkg. Installing Xcode Command Line Tools (provides git and python3) ..." >&2
+        xcode-select --install 2>/dev/null || true
+        echo "A system dialog may have appeared. After Xcode CLT finishes installing, rerun this installer." >&2
+        exit 1
+      fi
+      ;;
+    Linux)
+      local mgr=""
+      if command_exists apt-get;  then mgr="apt-get install -y";
+      elif command_exists dnf;    then mgr="dnf install -y";
+      elif command_exists yum;    then mgr="yum install -y";
+      elif command_exists pacman; then mgr="pacman -S --noconfirm";
+      elif command_exists apk;    then mgr="apk add";
+      fi
+
+      if [ -z "$mgr" ]; then
+        echo "Error: cannot find a supported package manager to install $pkg." >&2
+        echo "Please install $pkg manually, then rerun this installer." >&2
+        exit 1
+      fi
+
+      if command_exists sudo; then
+        sudo $mgr "$pkg"
+      else
+        echo "Error: sudo is required to install $pkg via $mgr." >&2
+        echo "Please install $pkg manually, then rerun this installer." >&2
+        exit 1
+      fi
+      ;;
+    *)
+      echo "Error: unsupported OS for automatic dependency installation." >&2
+      echo "Please install $pkg manually, then rerun this installer." >&2
+      exit 1
+      ;;
+  esac
+}
+
+ensure_deps() {
+  local target="$1"
+
+  if [ "$target" = "codex" ] && ! command_exists git; then
+    auto_install_package git
+    if ! command_exists git; then
+      echo "Error: git is still not available after install attempt." >&2
+      exit 1
+    fi
+  fi
+
+  if [ "$target" = "opencode" ] && ! command_exists python3; then
+    auto_install_package python3
+    if ! command_exists python3; then
+      echo "Error: python3 is still not available after install attempt." >&2
+      exit 1
+    fi
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Repository helpers
+# ---------------------------------------------------------------------------
 
 clone_or_update_repo() {
   mkdir -p "$(dirname "$INSTALL_ROOT")"
   if [ -d "$INSTALL_ROOT/.git" ]; then
-    git -C "$INSTALL_ROOT" pull --ff-only
+    if ! git -C "$INSTALL_ROOT" pull --ff-only 2>&1; then
+      echo "" >&2
+      echo "Error: git pull --ff-only failed. Your local clone may have diverged." >&2
+      echo "To recover, try:" >&2
+      echo "  git -C \"$INSTALL_ROOT\" fetch origin && git -C \"$INSTALL_ROOT\" reset --hard origin/main" >&2
+      exit 1
+    fi
   else
     rm -rf "$INSTALL_ROOT"
     git clone "$REPO_URL" "$INSTALL_ROOT"
@@ -32,6 +116,9 @@ EOF
 }
 
 install_opencode() {
+  # OpenCode's native plugin system fetches the pack directly from the git URL
+  # registered in opencode.json.  No local clone is needed — the plugin runtime
+  # resolves the git+https reference at startup and keeps its own cache.
   mkdir -p "$OPENCODE_CONFIG_DIR"
   OPENCODE_JSON="$OPENCODE_CONFIG_DIR/opencode.json"
   OPENCODE_JSON="$OPENCODE_JSON" DTT_PLUGIN_REF="$DTT_PLUGIN_REF" python3 <<'PY'
@@ -91,14 +178,6 @@ Uninstall: remove do-the-thing from $OPENCODE_CONFIG_DIR/opencode.json
 EOF
 }
 
-install_claude() {
-  cat <<EOF
-Claude Code install complete.
-Verify: confirm $INSTALL_ROOT/.claude-plugin/plugin.json exists.
-Usage: claude --plugin-dir "$INSTALL_ROOT"
-EOF
-}
-
 install_codex() {
   local skills_root="${HOME}/.agents/skills"
   mkdir -p "$skills_root"
@@ -112,18 +191,15 @@ EOF
 }
 
 case "$PLATFORM" in
-  opencode|claude|codex) ;;
+  opencode|codex) ;;
   *) usage ;;
 esac
+
+ensure_deps "$PLATFORM"
 
 case "$PLATFORM" in
   opencode)
     install_opencode
-    ;;
-  claude)
-    clone_or_update_repo
-    install_claude
-    print_common_footer
     ;;
   codex)
     clone_or_update_repo

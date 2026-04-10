@@ -2,6 +2,12 @@
 
 Codex uses one-command install. `agent router` is not available.
 
+## What Codex Gets
+
+The installer links the pack's `skills/` directory into Codex's skill discovery path. This gives Codex access to the 11 built-in `dtt-*` method skills (brainstorming, change-triage, writing-plans, debugging, etc.).
+
+**Note:** The full agent workflow (`leader` → `analyzer`/`implementer`/`reviewer` routing) requires agent definitions in `AGENTS.md` and `agents/`, which are not linked by this installer. Codex users can invoke the `dtt-*` skills individually but do not get the orchestrated single-entry workflow that OpenCode provides.
+
 ## One-Command Install
 
 ### macOS / Linux
@@ -38,7 +44,7 @@ cmd /c mklink /J "$env:USERPROFILE\.agents\skills\do-the-thing" "$env:USERPROFIL
 ls -la ~/.agents/skills/do-the-thing
 ```
 
-Start a new Codex session and ask for a task that should trigger the single-entry workflow. The session should route through `leader`, use built-in method skills, and operate without `agent router`.
+Start a new Codex session and try invoking a `dtt-*` skill directly (e.g., ask it to use `dtt-change-triage` on a task).
 
 ## Updating
 

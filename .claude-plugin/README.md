@@ -1,39 +1,24 @@
 # do-the-thing for Claude Code
 
-Claude Code uses one-command native install. `agent router` is not available.
+Claude Code support is **deferred**.
 
-## One-Command Install
+## Why Deferred
 
-### macOS / Linux
+Claude Code currently requires `--plugin-dir` to be passed on every invocation. There is no persistent plugin registration mechanism, so the plugin directory cannot be saved across sessions.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- claude
-```
+Until Claude Code adds a way to persistently register a plugin directory, the one-command installer does not include a `claude` target.
 
-### Windows PowerShell
+## Manual Usage (Advanced)
 
-```powershell
-irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing claude
-```
-
-## Native Plugin Details
-
-The repository root is the Claude plugin directory. Its plugin manifest lives at `.claude-plugin/plugin.json` inside that root.
-
-The installer clones the repository into a stable local directory and prints the shortest supported usage guidance:
+If you still want to use the plugin manually, clone the repository and pass the directory each time:
 
 ```bash
+git clone https://github.com/chendaleiQ/do-the-thing.git ~/.local/share/do-the-thing
 claude --plugin-dir ~/.local/share/do-the-thing
 ```
 
-## Verify Installation
+The plugin manifest lives at `.claude-plugin/plugin.json` inside the repository root.
 
-Start a new Claude Code session and ask for a task that should trigger workflow routing. The session should route through `leader` and use the built-in method skills.
+## Status
 
-## Updating
-
-Run the installer again to refresh the local clone.
-
-## Uninstalling
-
-Remove the local clone directory created by the installer.
+This page will be updated when Claude Code provides persistent plugin registration.

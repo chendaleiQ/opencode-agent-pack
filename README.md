@@ -25,10 +25,10 @@ This is **do-the-thing**: a single-entry agent workflow plugin with automatic la
 ## Platform Support
 - OpenCode: one-command native install, including `agent router`
 - Cursor: deferred
-- Claude Code: one-command native install
+- Claude Code: deferred
 - Codex: one-command install
 
-`agent router` is currently OpenCode-only. Claude Code and Codex still use the same single-entry workflow and built-in method skills, but without native router integration. Cursor remains deferred.
+`agent router` is currently OpenCode-only. Codex uses the same built-in method skills but without native router integration. Claude Code and Cursor remain deferred.
 
 It is **not**:
 - a prompt snippet collection
@@ -52,19 +52,9 @@ Platform installation is one-command first for supported targets.
 
 ### Claude Code
 
-One-command native install.
+Deferred.
 
-macOS / Linux:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- claude
-```
-
-Windows PowerShell:
-
-```powershell
-irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing claude
-```
+Claude Code currently requires `--plugin-dir` on every invocation, which cannot be persisted. Install support is deferred until a persistent plugin registration mechanism is available.
 
 Detailed docs: [`.claude-plugin/README.md`](./.claude-plugin/README.md)
 

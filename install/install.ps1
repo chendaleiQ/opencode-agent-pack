@@ -9,15 +9,62 @@ function Install-DoTheThing {
     $pluginValue = "$pluginValue#$($env:DTT_PLUGIN_REF)"
   }
 
-  if ($Platform -notin @('opencode', 'claude', 'codex')) {
-    throw 'usage: Install-DoTheThing <opencode|claude|codex>'
+  if ($Platform -notin @('opencode', 'codex')) {
+    throw 'usage: Install-DoTheThing <opencode|codex>'
   }
+
+  # -----------------------------------------------------------------------
+  # Dependency helpers
+  # -----------------------------------------------------------------------
+
+  function Ensure-GitAvailable {
+    if (Get-Command git -ErrorAction SilentlyContinue) { return }
+
+    Write-Host 'git is not installed. Attempting automatic install ...' -ForegroundColor Yellow
+
+    $installed = $false
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+      Write-Host 'Using winget to install Git ...'
+      winget install --id Git.Git -e --accept-source-agreements --accept-package-agreements
+      $installed = $true
+    } elseif (Get-Command choco -ErrorAction SilentlyContinue) {
+      Write-Host 'Using Chocolatey to install Git ...'
+      choco install git -y
+      $installed = $true
+    } elseif (Get-Command scoop -ErrorAction SilentlyContinue) {
+      Write-Host 'Using Scoop to install Git ...'
+      scoop install git
+      $installed = $true
+    }
+
+    if ($installed) {
+      # Refresh PATH so the current session can find git
+      $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+                  [System.Environment]::GetEnvironmentVariable('Path', 'User')
+    }
+
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+      throw 'Error: git is still not available after install attempt. Please install git manually, then rerun this installer.'
+    }
+  }
+
+  # -----------------------------------------------------------------------
+  # Repository helpers
+  # -----------------------------------------------------------------------
 
   function Sync-RepoClone {
     New-Item -ItemType Directory -Force -Path (Split-Path $installRoot -Parent) | Out-Null
 
     if (Test-Path (Join-Path $installRoot '.git')) {
-      git -C $installRoot pull --ff-only | Out-Null
+      try {
+        $output = git -C $installRoot pull --ff-only 2>&1
+        if ($LASTEXITCODE -ne 0) { throw $output }
+      } catch {
+        Write-Error "git pull --ff-only failed. Your local clone may have diverged."
+        Write-Error "To recover, try:"
+        Write-Error "  git -C `"$installRoot`" fetch origin; git -C `"$installRoot`" reset --hard origin/main"
+        throw
+      }
     } else {
       if (Test-Path $installRoot) {
         Remove-Item -Recurse -Force $installRoot
@@ -26,8 +73,24 @@ function Install-DoTheThing {
     }
   }
 
+  # -----------------------------------------------------------------------
+  # Ensure dependencies for the chosen target
+  # -----------------------------------------------------------------------
+
+  if ($Platform -eq 'codex') {
+    Ensure-GitAvailable
+  }
+  # OpenCode on PowerShell uses native JSON handling — no git or python3 needed.
+
+  # -----------------------------------------------------------------------
+  # Platform install logic
+  # -----------------------------------------------------------------------
+
   switch ($Platform) {
     'opencode' {
+      # OpenCode's native plugin system fetches the pack directly from the git
+      # URL registered in opencode.json.  No local clone is needed — the plugin
+      # runtime resolves the git+https reference at startup and keeps its own cache.
       New-Item -ItemType Directory -Force -Path $opencodeConfigDir | Out-Null
       $configPath = Join-Path $opencodeConfigDir 'opencode.json'
       if (Test-Path $configPath) {
@@ -78,15 +141,6 @@ function Install-DoTheThing {
       Write-Host 'Update: rerun with $env:DTT_PLUGIN_REF=<ref> to replace existing do-the-thing entries, then restart OpenCode.'
       Write-Host "Uninstall: remove do-the-thing from $configPath"
     }
-    'claude' {
-      Sync-RepoClone
-      Write-Host 'Claude Code install complete.'
-      Write-Host "Verify: confirm $installRoot/.claude-plugin/plugin.json exists."
-      Write-Host "Usage: claude --plugin-dir $installRoot"
-      Write-Host "Installed repository: $installRoot"
-      Write-Host "Update: git -C $installRoot pull --ff-only"
-      Write-Host "Uninstall: Remove-Item -Recurse -Force $installRoot"
-    }
     'codex' {
       Sync-RepoClone
       $skillsRoot = Join-Path $HOME '.agents/skills'
@@ -95,7 +149,14 @@ function Install-DoTheThing {
       if (Test-Path $junctionPath) {
         Remove-Item -Recurse -Force $junctionPath
       }
-      cmd /c mklink /J "$junctionPath" "$installRoot\skills" | Out-Null
+      try {
+        $mkOutput = cmd /c mklink /J "$junctionPath" "$installRoot\skills" 2>&1
+        if ($LASTEXITCODE -ne 0) { throw $mkOutput }
+      } catch {
+        Write-Error "Failed to create directory junction at $junctionPath."
+        Write-Error "You may need to run PowerShell as Administrator, or enable Developer Mode in Windows Settings."
+        throw
+      }
       Write-Host 'Codex install complete.'
       Write-Host "Verify: dir $junctionPath"
       Write-Host "Uninstall link: Remove-Item -Recurse -Force $junctionPath"

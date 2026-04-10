@@ -25,10 +25,10 @@ do-the-thing 是一个跨平台的 agent workflow plugin。
 ## 平台支持
 - OpenCode：一条命令原生安装，包括 `agent router`
 - Cursor：暂缓
-- Claude Code：一条命令原生安装
+- Claude Code：暂缓
 - Codex：一条命令安装
 
-`agent router` 当前仅支持 OpenCode。其他平台仍可使用同一套单入口工作流、内建方法技能与提示系统，只是没有原生 router 集成。
+`agent router` 当前仅支持 OpenCode。Codex 可使用内建方法技能，但没有原生 router 集成。Claude Code 和 Cursor 暂缓支持。
 
 它**不是**：
 - 提示词片段集合
@@ -124,19 +124,9 @@ do-the-thing 是一个跨平台的 agent workflow plugin。
 
 ### Claude Code
 
-一条命令原生安装。
+暂缓。
 
-macOS / Linux：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- claude
-```
-
-Windows PowerShell：
-
-```powershell
-irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing claude
-```
+Claude Code 当前每次启动都需要传 `--plugin-dir`，无法持久化注册。在有持久化插件注册机制之前，安装器暂不支持 Claude Code。
 
 详细说明：[`../../.claude-plugin/README.md`](../../.claude-plugin/README.md)
 

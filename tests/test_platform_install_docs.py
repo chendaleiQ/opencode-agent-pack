@@ -42,10 +42,8 @@ class PlatformInstallDocsTests(unittest.TestCase):
 
         self.assertIn("curl -fsSL", content)
         self.assertIn("install.sh | bash -s -- opencode", content)
-        self.assertIn("install.sh | bash -s -- claude", content)
         self.assertIn("install.sh | bash -s -- codex", content)
         self.assertIn("Install-DoTheThing opencode", content)
-        self.assertIn("Install-DoTheThing claude", content)
         self.assertIn("Install-DoTheThing codex", content)
 
     def test_platform_install_docs_use_installer_not_fetch_and_follow(self):
@@ -95,16 +93,13 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("syncManagedContent(PACKAGE_ROOT, configDir)", content)
         self.assertNotIn("syncManagedContent(directory, configDir)", content)
 
-    def test_claude_doc_uses_one_command_install(self):
+    def test_claude_doc_shows_deferred_status(self):
         content = (self.repo_root / ".claude-plugin" / "README.md").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn("curl -fsSL", content)
-        self.assertIn("install.sh | bash -s -- claude", content)
-        self.assertIn("Install-DoTheThing claude", content)
+        self.assertIn("deferred", content.lower())
         self.assertIn(".claude-plugin/plugin.json", content)
-        self.assertIn("Verify Installation", content)
 
     def test_codex_doc_uses_one_command_install(self):
         content = (self.repo_root / ".codex" / "INSTALL.md").read_text(encoding="utf-8")
@@ -128,18 +123,18 @@ class PlatformInstallDocsTests(unittest.TestCase):
         )
 
         self.assertIn("OpenCode: one-command native install", readme)
-        self.assertIn("Claude Code: one-command native install", readme)
+        self.assertIn("Claude Code: deferred", readme)
         self.assertIn("Codex: one-command install", readme)
         self.assertIn("Cursor: deferred", readme)
         self.assertIn("one-command", codex.lower())
         self.assertIn("deferred", cursor.lower())
-        self.assertIn("one-command", claude.lower())
+        self.assertIn("deferred", claude.lower())
 
     def test_installer_entrypoints_use_supported_target_names(self):
         shell = (self.repo_root / "install" / "install.sh").read_text(encoding="utf-8")
         ps1 = (self.repo_root / "install" / "install.ps1").read_text(encoding="utf-8")
 
-        for target in ["opencode", "claude", "codex"]:
+        for target in ["opencode", "codex"]:
             self.assertIn(target, shell)
             self.assertIn(target, ps1)
 
@@ -344,11 +339,11 @@ class PlatformInstallDocsTests(unittest.TestCase):
         )
 
         self.assertIn("OpenCode: one-command native install", readme)
-        self.assertIn("Claude Code: one-command native install", readme)
+        self.assertIn("Claude Code: deferred", readme)
         self.assertIn("Codex: one-command install", readme)
         self.assertIn("Cursor: deferred", readme)
         self.assertIn("OpenCode：一条命令原生安装", zh)
-        self.assertIn("Claude Code：一条命令原生安装", zh)
+        self.assertIn("Claude Code：暂缓", zh)
         self.assertIn("Codex：一条命令安装", zh)
         self.assertIn("Cursor：暂缓", zh)
 
