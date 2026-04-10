@@ -7,3 +7,4 @@ __pycache__/
 .opencode/package-lock.json
 .opencode/bun.lock
 .opencode/.gitignore
+.DS_Store
