@@ -111,13 +111,15 @@ function Install-DoTheThing {
       $nextPlugins = New-Object System.Collections.Generic.List[object]
       $insertAt = $null
       foreach ($plugin in $plugins) {
+        $isString = $plugin -is [string]
+        $isDoTheThing = $isString -and ($plugin -like 'do-the-thing@*')
         if ($plugin -eq $pluginValue) {
           if ($null -eq $insertAt) {
             $insertAt = $nextPlugins.Count
           }
           continue
         }
-        if ($plugin -is [string] -and $plugin.StartsWith('do-the-thing@')) {
+        if ($isDoTheThing) {
           if ($null -eq $insertAt) {
             $insertAt = $nextPlugins.Count
           }
