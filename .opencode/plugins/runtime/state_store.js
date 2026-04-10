@@ -1,6 +1,7 @@
 import fs from 'fs';
 
 import { latestStatePath, sessionStatePath } from './paths.js';
+import { profileFromLane } from './profiles.js';
 
 function now() {
   return new Date().toISOString();
@@ -61,6 +62,7 @@ export function createInitialState({ sessionID, projectKey }) {
     sessionID,
     projectKey,
     status: 'active',
+    profile: 'standard',
     entryType: 'general',
     entryReason: null,
     phase: 'created',
@@ -75,6 +77,7 @@ export function createInitialState({ sessionID, projectKey }) {
     createdAt: timestamp,
     updatedAt: timestamp,
     latestUserMessage: null,
+    lastEditAt: null,
     triage: null,
     evidence: {
       triage: [],
@@ -147,6 +150,7 @@ export function appendUnique(items, value) {
 export function recordEditedFile(context, filePath) {
   return updateState(context, (state) => {
     state.editedFiles = appendUnique(state.editedFiles, filePath);
+    state.lastEditAt = now();
     if (['passed', 'manual_passed'].includes(state.verification.status)) {
       state.verification.status = 'stale';
     }
@@ -187,6 +191,7 @@ export function recordLatestUserMessage(context, message) {
 export function recordTriage(context, triage) {
   return updateState(context, (state) => {
     state.triage = triage;
+    state.profile = profileFromLane(triage?.lane);
     state.evidence.triage = [
       ...state.evidence.triage,
       evidenceEntry('triage', {

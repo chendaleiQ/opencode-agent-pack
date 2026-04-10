@@ -67,33 +67,47 @@ function evidenceList(state, key) {
   return Array.isArray(items) ? items : [];
 }
 
-export function resolveEvidenceRequirements(state) {
+function isFreshEvidence(entry, lastEditAt) {
+  if (!lastEditAt) return true;
+  if (!entry?.at) return true;
+  return entry.at >= lastEditAt;
+}
+
+export function resolveEvidenceRequirements(state, options = {}) {
   const requirements = ['triage'];
   if ((state?.editedFiles || []).length > 0) requirements.push('verification-or-manual');
-  if (state?.triage?.needsReviewer) requirements.push('review');
+  if (state?.triage?.needsReviewer || options.requireAllEvidence) requirements.push('review');
   return requirements;
 }
 
-export function resolveMissingEvidence(state) {
+export function resolveMissingEvidence(state, options = {}) {
   const missing = [];
-  const requirements = resolveEvidenceRequirements(state);
+  const checkStaleness = options.checkStaleness !== false;
+  const requirements = resolveEvidenceRequirements(state, options);
   const triageEvidence = evidenceList(state, 'triage');
   const reviewEvidence = evidenceList(state, 'review');
   const verificationEvidence = evidenceList(state, 'verification');
   const manualEvidence = evidenceList(state, 'manual');
+  const lastEditAt = state?.lastEditAt || null;
 
   if (requirements.includes('triage') && triageEvidence.length === 0) {
     missing.push('missing triage evidence');
   }
 
   if (requirements.includes('review')) {
-    const hasPassingReview = reviewEvidence.some((item) => item?.status === 'passed');
+    const hasPassingReview = reviewEvidence.some(
+      (item) => item?.status === 'passed' && (!checkStaleness || isFreshEvidence(item, lastEditAt)),
+    );
     if (!hasPassingReview) missing.push('missing review evidence');
   }
 
   if (requirements.includes('verification-or-manual')) {
-    const hasPassingVerification = verificationEvidence.some((item) => item?.status === 'passed');
-    const hasPassingManual = manualEvidence.some((item) => item?.status === 'passed');
+    const hasPassingVerification = verificationEvidence.some(
+      (item) => item?.status === 'passed' && (!checkStaleness || isFreshEvidence(item, lastEditAt)),
+    );
+    const hasPassingManual = manualEvidence.some(
+      (item) => item?.status === 'passed' && (!checkStaleness || isFreshEvidence(item, lastEditAt)),
+    );
     if (!hasPassingVerification && !hasPassingManual) {
       missing.push('missing verification evidence');
     }
@@ -102,11 +116,11 @@ export function resolveMissingEvidence(state) {
   return missing;
 }
 
-export function evaluateCloseGate(state) {
+export function evaluateCloseGate(state, options = {}) {
   const missing = [];
   if (state?.phase !== 'closable') missing.push('state not closable');
   if (!state?.triage) missing.push('missing triage');
-  missing.push(...resolveMissingEvidence(state));
+  missing.push(...resolveMissingEvidence(state, options));
   if ((state?.editedFiles || []).length > 0) {
     const verificationStatus = state?.verification?.status;
     if (!['passed', 'manual_passed'].includes(verificationStatus)) {

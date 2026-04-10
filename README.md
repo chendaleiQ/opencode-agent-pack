@@ -28,7 +28,7 @@ This is **do-the-thing**: a single-entry agent workflow plugin with automatic la
 - Claude Code: deferred
 - Codex: one-command install
 
-`agent router` is currently OpenCode-only. Codex uses the same built-in method skills but without native router integration. OpenCode also provides the runtime guard layer for workflow state, audit logging, and close-time evidence gating. Claude Code and Cursor remain deferred.
+`agent router` is currently OpenCode-only. Codex uses the same built-in method skills but without native router integration. OpenCode also provides the runtime guard layer for workflow state, audit logging, profile-based enforcement modes, evidence staleness tracking, and close-time evidence gating. Claude Code and Cursor remain deferred.
 
 It is **not**:
 - a prompt snippet collection
@@ -41,7 +41,7 @@ It is **not**:
 - entry-driven workflow state so different task entry shapes can follow different safe paths
 - layered evidence model for triage, review, verification, and manual checks
 - built-in method skills for planning, debugging, review, verification, and execution
-- OpenCode runtime guard for workflow state, audit logs, and close-time evidence gating
+- OpenCode runtime guard for workflow state, audit logs, profile modes (minimal/standard/strict), evidence staleness, and close-time evidence gating
 - pack-owned built-in skills use a `dtt-` prefix to avoid collisions with similarly named external Superpowers skills
 - optional model router for OpenCode environments
 

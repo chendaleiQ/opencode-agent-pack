@@ -28,6 +28,8 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             self.repo_root / ".opencode" / "plugins" / "runtime" / "audit_store.js",
             self.repo_root / ".opencode" / "plugins" / "runtime" / "evidence_gate.js",
             self.repo_root / ".opencode" / "plugins" / "runtime" / "hook_runtime.js",
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "profiles.js",
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "audit_stats.js",
         ]
 
         for path in expected:

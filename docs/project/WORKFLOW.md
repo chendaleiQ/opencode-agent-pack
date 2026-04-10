@@ -147,6 +147,31 @@ Current evidence categories include:
 
 Close gating can then ask not only "is there evidence" but also "is the right kind of evidence present for this lane and current task state".
 
+### Runtime Profiles
+The runtime guard operates in one of three profiles, automatically mapped from the triage lane:
+
+| Feature | minimal | standard | strict |
+|---|---|---|---|
+| Audit logging | yes | yes | yes |
+| Tool call tracking | yes | yes | yes |
+| Protected config block | no | yes | yes |
+| No-verify block | no | yes | yes |
+| Close gate | no | yes | yes |
+| Completion rewrite | no | yes | yes |
+| Evidence staleness | no | yes | yes |
+| All evidence required | no | no | yes |
+
+Lane mapping: `quick` → minimal, `standard` → standard, `guarded`/`strict` → strict.
+
+### Evidence Staleness
+When a file is edited after verification passes, the runtime marks the verification evidence as stale. Typed evidence entries carry timestamps; `resolveMissingEvidence` compares each entry's `at` against `state.lastEditAt`. Evidence recorded before the last edit is not counted as fresh.
+
+### Audit Statistics
+The `audit_stats.js` module reads the jsonl audit log and computes:
+- Total event count and breakdown by type
+- Unique session list
+- Blocked attempt count (tool blocks + completion blocks)
+
 ## Evals and Maintenance
 Project includes `evals/` as a manual assessment kit for triage/lane/tier behavior.
 

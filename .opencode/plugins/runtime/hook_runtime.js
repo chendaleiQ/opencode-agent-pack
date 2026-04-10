@@ -14,6 +14,7 @@ import {
   parseVerificationFailureFromText,
 } from './evidence_gate.js';
 import { appendAuditRecord } from './audit_store.js';
+import { getProfileFeatures } from './profiles.js';
 import {
   loadState,
   markClosable,
@@ -50,6 +51,12 @@ function ensureSessionState(runtime, sessionID) {
   return saveState(context, loadState(context));
 }
 
+function activeFeatures(runtime, sessionID) {
+  const context = buildContext(runtime, sessionID);
+  const state = loadState(context);
+  return getProfileFeatures(state.profile || 'standard');
+}
+
 export function createRuntimeHooks(runtime) {
   return {
     event: async ({ event }) => {
@@ -78,9 +85,10 @@ export function createRuntimeHooks(runtime) {
 
     'tool.execute.before': async (input, output) => {
       const context = buildContext(runtime, input.sessionID);
+      const features = activeFeatures(runtime, input.sessionID);
       const args = output.args || {};
 
-      if (input.tool === 'bash' && isNoVerifyCommand(args.command || '')) {
+      if (features.noVerifyBlock && input.tool === 'bash' && isNoVerifyCommand(args.command || '')) {
         audit(runtime, { type: 'tool.blocked', sessionID: input.sessionID, tool: input.tool, reason: 'no-verify' });
         throw new Error('do-the-thing runtime blocked git commit --no-verify');
       }
@@ -92,7 +100,7 @@ export function createRuntimeHooks(runtime) {
         }
       }
 
-      if (['write', 'edit', 'multiedit'].includes(input.tool)) {
+      if (features.protectedConfigBlock && ['write', 'edit', 'multiedit'].includes(input.tool)) {
         for (const filePath of collectFilePaths(args)) {
           if (isProtectedConfigPath(filePath)) {
             recordProtectedBlock(context, filePath);
@@ -166,18 +174,26 @@ export function createRuntimeHooks(runtime) {
       const verificationFailure = parseVerificationFailureFromText(output.text);
       if (verificationFailure) recordVerificationFailure(context, verificationFailure);
 
-      const current = loadState(context);
-      const gatePreview = evaluateCloseGate({
-        ...current,
-        phase: 'closable',
-      });
-      if (gatePreview.allowed) {
-        markClosable(context, 'review and verification evidence satisfied');
+      const features = activeFeatures(runtime, input.sessionID);
+      const gateOptions = {
+        checkStaleness: features.evidenceStaleness,
+        requireAllEvidence: features.requireAllEvidence,
+      };
+
+      if (features.closeGate) {
+        const current = loadState(context);
+        const gatePreview = evaluateCloseGate({
+          ...current,
+          phase: 'closable',
+        }, gateOptions);
+        if (gatePreview.allowed) {
+          markClosable(context, 'review and verification evidence satisfied');
+        }
       }
 
-      if (detectClosureAttempt(output.text)) {
+      if (features.completionRewrite && detectClosureAttempt(output.text)) {
         const state = loadState(context);
-        const gate = evaluateCloseGate(state);
+        const gate = evaluateCloseGate(state, gateOptions);
         recordCompletionAttempt(context, gate.allowed, gate.missing);
         audit(runtime, {
           type: 'completion.attempt',

@@ -52,9 +52,12 @@ OpenCode is currently the only supported target with a native runtime guard. The
 - blocks edits to protected lint/formatter config files
 - tracks entry-driven workflow state and phase transitions
 - records layered evidence for triage, review, verification, and manual checks
+- tracks evidence staleness (re-verification required after file edits)
+- operates in profile modes: minimal (audit-only), standard (full guard), strict (all evidence required)
 - records workflow state for each session
 - injects workflow-state reminders into the system prompt
 - writes audit records for important workflow events
+- provides audit statistics aggregation
 - blocks final close attempts when required evidence is missing
 
 Formal command verification is preferred, but explicit manual verification notes remain valid when no formal verify command exists.

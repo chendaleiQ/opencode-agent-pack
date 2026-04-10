@@ -182,6 +182,84 @@ class CloseTimeEvidenceGateTests(unittest.TestCase):
         self.assertIn("missing review evidence", result["missing"])
         self.assertIn("missing verification evidence", result["missing"])
 
+    def test_require_all_evidence_demands_review_even_without_reviewer(self):
+        module_url = (
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "evidence_gate.js"
+        ).as_uri()
+        output = self._run_node(
+            f"""
+            const mod = await import({json.dumps(module_url)});
+            // Without requireAllEvidence — no review needed when needsReviewer=false
+            const ok = mod.evaluateCloseGate({{
+              phase: 'closable',
+              triage: {{ lane: 'quick', needsReviewer: false }},
+              evidence: {{
+                triage: [{{ kind: 'triage', at: '2026-01-01T00:00:00Z' }}],
+                review: [],
+                verification: [{{ kind: 'verification', status: 'passed', at: '2026-01-01T02:00:00Z' }}],
+                manual: [],
+                escalation: [],
+              }},
+              editedFiles: ['src/a.ts'],
+              verification: {{ status: 'passed', commands: [{{ category: 'tests' }}] }},
+              reviewer: {{ status: 'not_required' }},
+            }});
+            // With requireAllEvidence — review required even without needsReviewer
+            const strict = mod.evaluateCloseGate({{
+              phase: 'closable',
+              triage: {{ lane: 'quick', needsReviewer: false }},
+              evidence: {{
+                triage: [{{ kind: 'triage', at: '2026-01-01T00:00:00Z' }}],
+                review: [],
+                verification: [{{ kind: 'verification', status: 'passed', at: '2026-01-01T02:00:00Z' }}],
+                manual: [],
+                escalation: [],
+              }},
+              editedFiles: ['src/a.ts'],
+              verification: {{ status: 'passed', commands: [{{ category: 'tests' }}] }},
+              reviewer: {{ status: 'not_required' }},
+            }}, {{ requireAllEvidence: true }});
+            console.log(JSON.stringify({{ ok: ok, strict: strict }}));
+            """
+        )
+        result = json.loads(output)
+        self.assertTrue(result["ok"]["allowed"])
+        self.assertFalse(result["strict"]["allowed"])
+        self.assertIn("missing review evidence", result["strict"]["missing"])
+
+    def test_staleness_disabled_ignores_old_evidence(self):
+        module_url = (
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "evidence_gate.js"
+        ).as_uri()
+        output = self._run_node(
+            f"""
+            const mod = await import({json.dumps(module_url)});
+            const state = {{
+              phase: 'closable',
+              triage: {{ lane: 'standard', needsReviewer: false }},
+              evidence: {{
+                triage: [{{ kind: 'triage', at: '2026-01-01T00:00:00Z' }}],
+                review: [],
+                verification: [{{ kind: 'verification', status: 'passed', at: '2026-01-01T00:30:00Z' }}],
+                manual: [],
+                escalation: [],
+              }},
+              editedFiles: ['src/a.ts'],
+              lastEditAt: '2026-01-01T01:00:00Z',
+              verification: {{ status: 'stale', commands: [{{ category: 'tests' }}] }},
+              reviewer: {{ status: 'not_required' }},
+            }};
+            // With staleness enabled, old evidence is rejected
+            const withStaleness = mod.resolveMissingEvidence(state, {{ checkStaleness: true }});
+            // With staleness disabled, old evidence is accepted
+            const withoutStaleness = mod.resolveMissingEvidence(state, {{ checkStaleness: false }});
+            console.log(JSON.stringify({{ withStaleness, withoutStaleness }}));
+            """
+        )
+        result = json.loads(output)
+        self.assertIn("missing verification evidence", result["withStaleness"])
+        self.assertEqual([], result["withoutStaleness"])
+
 
 if __name__ == "__main__":
     unittest.main()
