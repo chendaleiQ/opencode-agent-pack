@@ -81,6 +81,9 @@ class PlatformInstallDocsTests(unittest.TestCase):
             content,
         )
         self.assertIn("Restart OpenCode", content)
+        self.assertIn("runtime guard", content)
+        self.assertIn("workflow state", content.lower())
+        self.assertIn("audit", content.lower())
         self.assertIn("Pack-owned built-in skills use a `dtt-` prefix", content)
         self.assertIn("detects duplicate skill names from multiple sources", content)
 

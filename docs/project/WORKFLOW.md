@@ -88,6 +88,7 @@ High-risk or sensitive tasks require strong boundary control from the start:
 - strongest model controls decisions and closure
 - triage before implementation
 - lane routing + tier routing
+- entry-driven state flow, not one fixed workflow for every task
 - automatic escalation only upward (no auto-downgrade)
 - explicit end-gates by lane
 - unified execution summary at close
@@ -98,6 +99,53 @@ High-risk or sensitive tasks require strong boundary control from the start:
 - verification evidence can be command output or an explicit manual check when no formal verify command exists
 - when verification is manual, the agent should say exactly what was checked
 - `leader` should only close work after the relevant end-gate is satisfied
+
+## OpenCode Runtime Guard
+When running inside OpenCode, do-the-thing can add a lightweight runtime guard layer in addition to the prompt workflow.
+
+The runtime guard is designed to make workflow bypass harder for weaker models by adding:
+- Hooks-based blocking for obvious bypasses
+- entry-driven workflow state (`entryType`) and phase tracking (`phase`)
+- layered evidence tracking for triage, review, verification, manual checks, and escalation
+- workflow state persisted per session
+- audit logging for important workflow events
+- close-time evidence gating before completion claims
+
+This does not replace `leader` workflow ownership. It reinforces it with execution-time checks.
+
+### Entry-Driven State Flow
+The runtime guard is not a single fixed pipeline. It tracks which kind of entry the current task resembles and which phase the task is currently in.
+
+Examples of entry types:
+- `general`
+- `chat`
+- `implement`
+- `review`
+- `debug`
+- `close`
+
+Examples of phases:
+- `created`
+- `triaged`
+- `implementing`
+- `reviewing`
+- `verifying`
+- `closable`
+- `closed`
+
+This allows different task entry shapes to follow different paths while still enforcing a controlled close gate.
+
+### Layered Evidence Model
+The runtime guard can also track structured evidence instead of treating all checks as one generic verification flag.
+
+Current evidence categories include:
+- `triage`
+- `review`
+- `verification`
+- `manual`
+- `escalation`
+
+Close gating can then ask not only "is there evidence" but also "is the right kind of evidence present for this lane and current task state".
 
 ## Evals and Maintenance
 Project includes `evals/` as a manual assessment kit for triage/lane/tier behavior.

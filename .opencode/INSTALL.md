@@ -44,6 +44,28 @@ Add do-the-thing to the `plugin` array in your `opencode.json` (global or projec
 
 Restart OpenCode. That's it - the plugin auto-installs from GitHub, syncs the workflow files into your OpenCode config directory, and registers the built-in skills. Pack-owned built-in skills use a `dtt-` prefix to avoid collisions with similarly named external Superpowers skills.
 
+## OpenCode Runtime Guard
+
+OpenCode is currently the only supported target with a native runtime guard. The plugin now adds a lightweight Hooks-based execution layer that:
+
+- blocks obvious workflow bypasses like `git commit --no-verify`
+- blocks edits to protected lint/formatter config files
+- tracks entry-driven workflow state and phase transitions
+- records layered evidence for triage, review, verification, and manual checks
+- records workflow state for each session
+- injects workflow-state reminders into the system prompt
+- writes audit records for important workflow events
+- blocks final close attempts when required evidence is missing
+
+Formal command verification is preferred, but explicit manual verification notes remain valid when no formal verify command exists.
+
+Runtime data is stored under your OpenCode config directory:
+
+- workflow state: `~/.config/opencode/do-the-thing/sessions/`
+- audit logs: `~/.config/opencode/do-the-thing/audit/`
+
+This runtime guard is intentionally lightweight and dependency-free. Codex continues to receive the built-in method skills, but not the OpenCode runtime guard, workflow state, or audit layer.
+
 To pin a specific version:
 
 ```json
@@ -65,7 +87,7 @@ If you also have older skill sources in `~/.agents/skills`, remove or disable th
 
 ## Verify Installation
 
-Start a new OpenCode session and ask for a task that should trigger workflow routing. The session should route through `leader`, use the built-in method skills, and keep `agent router` available.
+Start a new OpenCode session and ask for a task that should trigger workflow routing. The session should route through `leader`, use the built-in method skills, keep `agent router` available, and create runtime guard state under `~/.config/opencode/do-the-thing/`.
 
 ## Updating
 
@@ -77,3 +99,4 @@ Run the one-command installer again to update the configured `do-the-thing` plug
 2. If needed, rerun the installer with `DTT_PLUGIN_REF=<ref>` to replace stale `do-the-thing` entries
 3. Restart OpenCode after adding or changing the plugin line
 4. Confirm that `AGENTS.md`, `agents/`, `commands/`, `skills/`, and `tools/` were synced into your OpenCode config directory
+5. Confirm that `~/.config/opencode/do-the-thing/` was created after a session starts and contains workflow state or audit files

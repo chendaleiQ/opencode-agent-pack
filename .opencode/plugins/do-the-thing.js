@@ -3,6 +3,9 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { projectKey, resolveConfigDir } from './runtime/paths.js';
+import { createRuntimeHooks } from './runtime/hook_runtime.js';
+
 const MANAGED_PATHS = ['AGENTS.md', 'agents', 'commands', 'skills', 'tools'];
 const PLUGIN_FILE = fileURLToPath(import.meta.url);
 const PACKAGE_ROOT = path.resolve(path.dirname(PLUGIN_FILE), '..', '..');
@@ -63,12 +66,6 @@ function ensureNoDuplicateSkillSources(repoDir, configDir) {
   );
 }
 
-function resolveConfigDir() {
-  const configured = process.env.OPENCODE_CONFIG_DIR?.trim();
-  if (configured) return path.resolve(configured);
-  return path.join(os.homedir(), '.config', 'opencode');
-}
-
 function syncManagedContent(repoDir, configDir) {
   fs.mkdirSync(configDir, { recursive: true });
 
@@ -81,10 +78,14 @@ function syncManagedContent(repoDir, configDir) {
   }
 }
 
-export const DoTheThingPlugin = async () => {
+export const DoTheThingPlugin = async ({ project, directory, worktree }) => {
   const configDir = resolveConfigDir();
   ensureNoDuplicateSkillSources(PACKAGE_ROOT, configDir);
   syncManagedContent(PACKAGE_ROOT, configDir);
+  const runtimeHooks = createRuntimeHooks({
+    configDir,
+    projectKey: projectKey({ project, directory, worktree }),
+  });
 
   return {
     config: async (config) => {
@@ -96,5 +97,6 @@ export const DoTheThingPlugin = async () => {
         config.skills.paths.push(installedSkills);
       }
     },
+    ...runtimeHooks,
   };
 };
