@@ -68,7 +68,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
         data = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual("do-the-thing", data["name"])
         self.assertIn("description", data)
-        self.assertEqual("1.2.0", data["version"])
+        self.assertEqual("1.3.0", data["version"])
 
     def test_opencode_install_doc_uses_one_command_install(self):
         content = (self.repo_root / ".opencode" / "INSTALL.md").read_text(
@@ -208,7 +208,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
             env["DTT_REPO_URL"] = str(self.repo_root)
             env["DTT_INSTALL_ROOT"] = str(temp / "installed" / "do-the-thing")
             env["OPENCODE_CONFIG_DIR"] = str(config_dir)
-            env["DTT_PLUGIN_REF"] = "v1.2.0"
+            env["DTT_PLUGIN_REF"] = "v1.3.0"
 
             subprocess.run(
                 ["bash", str(script), "opencode"],
@@ -227,7 +227,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
                 {
                     "plugin": [
                         "other-plugin@1.0.0",
-                        "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.2.0",
+                        "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.3.0",
                     ],
                     "provider": "openai",
                 },
@@ -265,7 +265,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
             env["DTT_REPO_URL"] = str(self.repo_root)
             env["DTT_INSTALL_ROOT"] = str(temp / "installed" / "do-the-thing")
             env["OPENCODE_CONFIG_DIR"] = str(config_dir)
-            env["DTT_PLUGIN_REF"] = "v1.2.0"
+            env["DTT_PLUGIN_REF"] = "v1.3.0"
 
             subprocess.run(
                 [
@@ -290,7 +290,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
                 {
                     "plugin": [
                         "other-plugin@1.0.0",
-                        "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.2.0",
+                        "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.3.0",
                     ],
                     "provider": "openai",
                 },

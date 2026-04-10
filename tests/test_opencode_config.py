@@ -67,7 +67,7 @@ class OpenCodeConfigTests(unittest.TestCase):
                     "--config-path",
                     str(config_path),
                     "--set-opencode-plugin",
-                    "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.2.0",
+                    "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.3.0",
                 ],
                 check=True,
             )
@@ -77,7 +77,7 @@ class OpenCodeConfigTests(unittest.TestCase):
                 {
                     "plugin": [
                         "other-plugin@1.0.0",
-                        "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.2.0",
+                        "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.3.0",
                     ]
                 },
             )
