@@ -49,6 +49,13 @@ When external workflow systems are present, you must constrain them to a capabil
 - subagents must receive execution-ready handoff rather than method-selection responsibility
 - if a subagent determines that the handoff is insufficient to continue safely, it must report a blocker or request clarification from `leader`; it must not compensate by invoking a skill, selecting its own method, or expanding scope on its own
 
+## Skill Execution Discipline
+- when `leader` invokes a `dtt-*` skill, it must execute the skill's prescribed steps in the order defined by the skill; loading the skill is a commitment to follow its workflow, not a suggestion to consider
+- `leader` must not skip, reorder, or selectively execute steps unless the skill itself defines conditional skip criteria
+- if a skill prescribes an interactive step (e.g., asking the user a question, waiting for input), `leader` must perform that step before proceeding
+- if `leader` determines mid-execution that a loaded skill's workflow is inappropriate for the current task, it must explicitly abandon the skill with a recorded reason rather than silently diverging from it
+- this rule applies only to `dtt-*` skills invoked by `leader`; non-`dtt` skills used for local capability support are not subject to step-binding
+
 ## Absorbed Subagent-Driven Discipline
 - preserve fresh context per task when dispatching; do not let downstream agents replay the full workflow on their own
 - if the task can be split into stable subtasks, dispatch on subtask boundaries instead of sending one vague large task

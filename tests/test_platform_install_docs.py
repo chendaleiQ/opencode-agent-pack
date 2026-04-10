@@ -68,7 +68,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
         data = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual("do-the-thing", data["name"])
         self.assertIn("description", data)
-        self.assertEqual("1.3.0", data["version"])
+        self.assertEqual("1.4.0", data["version"])
 
     def test_opencode_install_doc_uses_one_command_install(self):
         content = (self.repo_root / ".opencode" / "INSTALL.md").read_text(
