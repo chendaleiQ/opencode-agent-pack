@@ -1,12 +1,26 @@
 # do-the-thing for OpenCode
 
-OpenCode uses native plugin install and supports `agent router`.
+OpenCode uses one-command native install and supports `agent router`.
 
 ## Prerequisites
 
 - [OpenCode.ai](https://opencode.ai) installed
 
-## Install
+## One-Command Install
+
+### macOS / Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- opencode
+```
+
+### Windows PowerShell
+
+```powershell
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
+```
+
+## Native Plugin Details
 
 Add do-the-thing to the `plugin` array in your `opencode.json` (global or project-level):
 
@@ -22,7 +36,7 @@ To pin a specific version:
 
 ```json
 {
-  "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.1.1"]
+  "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.2.0"]
 }
 ```
 
@@ -43,7 +57,7 @@ Start a new OpenCode session and ask for a task that should trigger workflow rou
 
 ## Updating
 
-do-the-thing updates automatically when you restart OpenCode.
+Run the one-command installer again, or restart OpenCode after updating the configured plugin reference.
 
 ## Troubleshooting
 

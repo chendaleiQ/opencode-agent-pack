@@ -32,6 +32,16 @@ When external workflow systems are present, you must constrain them to a capabil
 - `user enters merge/PR/keep/discard closing flow -> `dtt-finishing-a-development-branch``
 - when an equivalent built-in skill exists, strongly prohibit switching to an external workflow for the same purpose
 
+## Skill Selection Boundaries
+- the following rules apply only to the `leader` agent
+- when `leader` requires a method skill for a capability that has a corresponding `dtt-*` skill, it must invoke that `dtt-*` skill and must not invoke any non-`dtt` skill that provides the same or substantially the same capability
+- after control has been handed to `leader`, `leader` must not invoke any skill whose primary purpose is initial discovery, entry routing, generic capability selection, or other pre-workflow guidance
+- once `leader` is active, skill selection must be performed directly from `leader` workflow needs and the `dtt-*` precedence rule above
+- if `leader` requires a capability for which no corresponding `dtt-*` skill exists, it may invoke an appropriate non-`dtt` skill, provided that the skill is not an initial-discovery, entry-routing, or generic workflow-guidance skill
+- these rules do not apply to non-`leader` agents
+- any agent other than `leader` must not invoke any `dtt-*` skill
+- non-`leader` agents must operate only within their assigned handoff boundaries and may invoke only non-`dtt` skills appropriate to their local task
+
 ## Absorbed Subagent-Driven Discipline
 - preserve fresh context per task when dispatching; do not let downstream agents replay the full workflow on their own
 - if the task can be split into stable subtasks, dispatch on subtask boundaries instead of sending one vague large task

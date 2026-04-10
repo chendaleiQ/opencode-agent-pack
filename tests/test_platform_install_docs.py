@@ -1,3 +1,7 @@
+import json
+import os
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -8,11 +12,14 @@ class PlatformInstallDocsTests(unittest.TestCase):
 
     def test_platform_install_entry_files_exist(self):
         expected = [
+            self.repo_root / "install" / "install.sh",
+            self.repo_root / "install" / "install.ps1",
             self.repo_root / ".opencode" / "INSTALL.md",
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js",
             self.repo_root / ".codex" / "INSTALL.md",
             self.repo_root / ".cursor-plugin" / "README.md",
             self.repo_root / ".claude-plugin" / "README.md",
+            self.repo_root / ".claude-plugin" / "plugin.json",
             self.repo_root / "package.json",
         ]
 
@@ -29,19 +36,18 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("### OpenCode", content)
         self.assertIn("### Verify Installation", content)
 
-    def test_readme_uses_fetch_and_follow_for_opencode_and_codex(self):
+    def test_readme_uses_one_command_install_for_supported_platforms(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")
 
-        self.assertIn(
-            "Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.codex/INSTALL.md",
-            content,
-        )
-        self.assertIn(
-            "Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md",
-            content,
-        )
+        self.assertIn("curl -fsSL", content)
+        self.assertIn("install.sh | bash -s -- opencode", content)
+        self.assertIn("install.sh | bash -s -- claude", content)
+        self.assertIn("install.sh | bash -s -- codex", content)
+        self.assertIn("Install-DoTheThing opencode", content)
+        self.assertIn("Install-DoTheThing claude", content)
+        self.assertIn("Install-DoTheThing codex", content)
 
-    def test_platform_install_docs_avoid_local_script_install_flow(self):
+    def test_platform_install_docs_use_installer_not_fetch_and_follow(self):
         docs = [
             self.repo_root / ".opencode" / "INSTALL.md",
             self.repo_root / ".codex" / "INSTALL.md",
@@ -52,16 +58,25 @@ class PlatformInstallDocsTests(unittest.TestCase):
 
         for path in docs:
             content = path.read_text(encoding="utf-8")
-            self.assertNotIn("git clone", content)
-            self.assertNotIn("bash install.sh", content)
-            self.assertNotIn("install.ps1", content)
-            self.assertNotIn("bootstrap/install.sh", content)
+            self.assertNotIn("Fetch and follow instructions from", content)
 
-    def test_opencode_install_doc_uses_plugin_array_install(self):
+    def test_claude_plugin_manifest_exists_and_has_required_fields(self):
+        path = self.repo_root / ".claude-plugin" / "plugin.json"
+        self.assertTrue(path.exists(), f"missing Claude plugin manifest: {path}")
+
+        data = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual("do-the-thing", data["name"])
+        self.assertIn("description", data)
+        self.assertEqual("1.2.0", data["version"])
+
+    def test_opencode_install_doc_uses_one_command_install(self):
         content = (self.repo_root / ".opencode" / "INSTALL.md").read_text(
             encoding="utf-8"
         )
 
+        self.assertIn("curl -fsSL", content)
+        self.assertIn("install.sh | bash -s -- opencode", content)
+        self.assertIn("Install-DoTheThing opencode", content)
         self.assertIn(
             '"plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git"]',
             content,
@@ -79,7 +94,29 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("syncManagedContent(PACKAGE_ROOT, configDir)", content)
         self.assertNotIn("syncManagedContent(directory, configDir)", content)
 
-    def test_platform_docs_distinguish_native_vs_manual_install(self):
+    def test_claude_doc_uses_one_command_install(self):
+        content = (self.repo_root / ".claude-plugin" / "README.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("curl -fsSL", content)
+        self.assertIn("install.sh | bash -s -- claude", content)
+        self.assertIn("Install-DoTheThing claude", content)
+        self.assertIn(".claude-plugin/plugin.json", content)
+        self.assertIn("Verify Installation", content)
+
+    def test_codex_doc_uses_one_command_install(self):
+        content = (self.repo_root / ".codex" / "INSTALL.md").read_text(encoding="utf-8")
+
+        self.assertIn("curl -fsSL", content)
+        self.assertIn("install.sh | bash -s -- codex", content)
+        self.assertIn("Install-DoTheThing codex", content)
+        self.assertIn("ln -s", content)
+        self.assertIn("mklink /J", content)
+        self.assertIn("Updating", content)
+        self.assertIn("Uninstalling", content)
+
+    def test_platform_docs_distinguish_supported_vs_deferred_install(self):
         readme = (self.repo_root / "README.md").read_text(encoding="utf-8")
         codex = (self.repo_root / ".codex" / "INSTALL.md").read_text(encoding="utf-8")
         cursor = (self.repo_root / ".cursor-plugin" / "README.md").read_text(
@@ -89,29 +126,78 @@ class PlatformInstallDocsTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("Native plugin install.", readme)
-        self.assertIn("Manual install.", readme)
-        self.assertIn("Manual compatibility install.", readme)
-        self.assertIn("manual install", codex.lower())
-        self.assertIn("manual compatibility install", cursor.lower())
-        self.assertIn("manual compatibility install", claude.lower())
+        self.assertIn("OpenCode: one-command native install", readme)
+        self.assertIn("Claude Code: one-command native install", readme)
+        self.assertIn("Codex: one-command install", readme)
+        self.assertIn("Cursor: deferred", readme)
+        self.assertIn("one-command", codex.lower())
+        self.assertIn("deferred", cursor.lower())
+        self.assertIn("one-command", claude.lower())
 
-    def test_legacy_install_script_chain_is_removed(self):
-        removed = [
-            self.repo_root / "install.sh",
-            self.repo_root / "install.ps1",
-            self.repo_root / "bootstrap" / "install.sh",
-            self.repo_root / "bootstrap" / "install.ps1",
-            self.repo_root / "pack" / "tools" / "release_bootstrap.py",
-            self.repo_root / "pack" / "tools" / "release_package.py",
-            self.repo_root / "tests" / "test_install_sh_provider_allowlist.py",
-            self.repo_root / "tests" / "test_release_bootstrap.py",
-            self.repo_root / "tests" / "test_release_package.py",
-        ]
+    def test_installer_entrypoints_use_supported_target_names(self):
+        shell = (self.repo_root / "install" / "install.sh").read_text(encoding="utf-8")
+        ps1 = (self.repo_root / "install" / "install.ps1").read_text(encoding="utf-8")
 
-        for path in removed:
-            self.assertFalse(
-                path.exists(), f"legacy install artifact still exists: {path}"
+        for target in ["opencode", "claude", "codex"]:
+            self.assertIn(target, shell)
+            self.assertIn(target, ps1)
+
+        self.assertIn("Install-DoTheThing", ps1)
+
+    def test_shell_installer_configures_opencode_plugin_entry(self):
+        script = self.repo_root / "install" / "install.sh"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp = Path(tmpdir)
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+            env["DTT_REPO_URL"] = str(self.repo_root)
+            env["DTT_INSTALL_ROOT"] = str(temp / "installed" / "do-the-thing")
+            env["OPENCODE_CONFIG_DIR"] = str(temp / "opencode-config")
+
+            subprocess.run(
+                ["bash", str(script), "opencode"],
+                check=True,
+                cwd=self.repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+            config_path = temp / "opencode-config" / "opencode.json"
+            self.assertTrue(config_path.exists())
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            self.assertIn("plugin", config)
+            self.assertIn(
+                "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git",
+                config["plugin"],
+            )
+
+    def test_shell_installer_creates_codex_skill_symlink(self):
+        script = self.repo_root / "install" / "install.sh"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp = Path(tmpdir)
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+            env["DTT_REPO_URL"] = str(self.repo_root)
+            env["DTT_INSTALL_ROOT"] = str(temp / "installed" / "do-the-thing")
+
+            subprocess.run(
+                ["bash", str(script), "codex"],
+                check=True,
+                cwd=self.repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+            link_path = temp / ".agents" / "skills" / "do-the-thing"
+            self.assertTrue(link_path.exists())
+            self.assertTrue(link_path.is_symlink())
+            self.assertEqual(
+                str(temp / "installed" / "do-the-thing" / "skills"),
+                os.readlink(link_path),
             )
 
     def test_repository_uses_top_level_core_layout(self):
@@ -127,6 +213,21 @@ class PlatformInstallDocsTests(unittest.TestCase):
 
         self.assertFalse((self.repo_root / "pack").exists())
         self.assertFalse((self.repo_root / "bootstrap").exists())
+
+    def test_readmes_reflect_one_command_support_matrix(self):
+        readme = (self.repo_root / "README.md").read_text(encoding="utf-8")
+        zh = (self.repo_root / "docs" / "project" / "README.zh-CN.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("OpenCode: one-command native install", readme)
+        self.assertIn("Claude Code: one-command native install", readme)
+        self.assertIn("Codex: one-command install", readme)
+        self.assertIn("Cursor: deferred", readme)
+        self.assertIn("OpenCode：一条命令原生安装", zh)
+        self.assertIn("Claude Code：一条命令原生安装", zh)
+        self.assertIn("Codex：一条命令安装", zh)
+        self.assertIn("Cursor：暂缓", zh)
 
     def test_readme_directory_tree_has_no_examples_or_pack_dir(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")

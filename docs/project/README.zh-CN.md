@@ -23,10 +23,10 @@ do-the-thing 是一个跨平台的 agent workflow plugin。
 这是 **do-the-thing**：一个**单入口、自动 lane+tier 路由的 agent workflow plugin**。
 
 ## 平台支持
-- OpenCode：完整 plugin 支持，包括 `agent router`
-- Cursor：支持 workflow plugin，不支持 `agent router`
-- Claude Code：支持 workflow plugin，不支持 `agent router`
-- Codex：支持 workflow plugin，不支持 `agent router`
+- OpenCode：一条命令原生安装，包括 `agent router`
+- Cursor：暂缓
+- Claude Code：一条命令原生安装
+- Codex：一条命令安装
 
 `agent router` 当前仅支持 OpenCode。其他平台仍可使用同一套单入口工作流、内建方法技能与提示系统，只是没有原生 router 集成。
 
@@ -120,47 +120,67 @@ do-the-thing 是一个跨平台的 agent workflow plugin。
 
 ## 安装
 
-不同平台的安装方式略有差异。OpenCode 支持完整功能，Cursor、Claude Code 与 Codex 则以无 `agent router` 的兼容模式运行。
+已支持平台统一优先使用一条命令安装。
 
 ### Claude Code
 
-告诉 Claude Code：
+一条命令原生安装。
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.claude-plugin/README.md
+macOS / Linux：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- claude
 ```
 
-详细说明：[` .claude-plugin/README.md`](./.claude-plugin/README.md)
+Windows PowerShell：
+
+```powershell
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing claude
+```
+
+详细说明：[`../../.claude-plugin/README.md`](../../.claude-plugin/README.md)
 
 ### Cursor
 
-在 Cursor Agent chat 中告诉它：
+暂缓。当前仍在评估是否能用一条命令安装器安全落地 Cursor 兼容层。
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.cursor-plugin/README.md
-```
-
-详细说明：[` .cursor-plugin/README.md`](./.cursor-plugin/README.md)
+详细说明：[`../../.cursor-plugin/README.md`](../../.cursor-plugin/README.md)
 
 ### Codex
 
-告诉 Codex：
+一条命令安装。
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.codex/INSTALL.md
+macOS / Linux：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- codex
 ```
 
-详细说明：[` .codex/INSTALL.md`](./.codex/INSTALL.md)
+Windows PowerShell：
+
+```powershell
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing codex
+```
+
+详细说明：[`../../.codex/INSTALL.md`](../../.codex/INSTALL.md)
 
 ### OpenCode
 
-告诉 OpenCode：
+一条命令原生安装。
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md
+macOS / Linux：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- opencode
 ```
 
-详细说明：[` .opencode/INSTALL.md`](./.opencode/INSTALL.md)
+Windows PowerShell：
+
+```powershell
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
+```
+
+详细说明：[`../../.opencode/INSTALL.md`](../../.opencode/INSTALL.md)
 
 ### 验证安装
 

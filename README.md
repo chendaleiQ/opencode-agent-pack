@@ -23,12 +23,12 @@ This plugin removes that burden at the workflow level:
 This is **do-the-thing**: a single-entry agent workflow plugin with automatic lane+tier routing.
 
 ## Platform Support
-- OpenCode: full plugin support, including `agent router`
-- Cursor: workflow plugin support without `agent router`
-- Claude Code: workflow plugin support without `agent router`
-- Codex: workflow plugin support without `agent router`
+- OpenCode: one-command native install, including `agent router`
+- Cursor: deferred
+- Claude Code: one-command native install
+- Codex: one-command install
 
-`agent router` is currently OpenCode-only. Other platforms still use the same single-entry workflow, built-in method skills, and prompt system, but without native router integration.
+`agent router` is currently OpenCode-only. Claude Code and Codex still use the same single-entry workflow and built-in method skills, but without native router integration. Cursor remains deferred.
 
 It is **not**:
 - a prompt snippet collection
@@ -48,52 +48,66 @@ Detailed workflow docs:
 
 ## Installation
 
-Platform installation differs by host.
+Platform installation is one-command first for supported targets.
 
 ### Claude Code
 
-Manual compatibility install.
+One-command native install.
 
-Tell Claude Code:
+macOS / Linux:
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.claude-plugin/README.md
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- claude
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing claude
 ```
 
 Detailed docs: [`.claude-plugin/README.md`](./.claude-plugin/README.md)
 
 ### Cursor
 
-Manual compatibility install.
+Deferred.
 
-In Cursor Agent chat, tell it:
-
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.cursor-plugin/README.md
-```
+Cursor support is under investigation and is not included in the supported one-command installer targets yet.
 
 Detailed docs: [`.cursor-plugin/README.md`](./.cursor-plugin/README.md)
 
 ### Codex
 
-Manual install.
+One-command install.
 
-Tell Codex:
+macOS / Linux:
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.codex/INSTALL.md
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- codex
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing codex
 ```
 
 Detailed docs: [`.codex/INSTALL.md`](./.codex/INSTALL.md)
 
 ### OpenCode
 
-Native plugin install.
+One-command native install.
 
-Tell OpenCode:
+macOS / Linux:
 
-```text
-Fetch and follow instructions from https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/.opencode/INSTALL.md
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- opencode
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
 ```
 
 Detailed docs: [`.opencode/INSTALL.md`](./.opencode/INSTALL.md)
