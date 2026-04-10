@@ -42,6 +42,13 @@ When external workflow systems are present, you must constrain them to a capabil
 - any agent other than `leader` must not invoke any `dtt-*` skill
 - non-`leader` agents must operate only within their assigned handoff boundaries and may invoke only non-`dtt` skills appropriate to their local task
 
+## Leader-to-Subagent Method Ownership
+- `leader` is the only agent that may select workflow methods or invoke skills; built-in subagents (`analyzer`, `implementer`, `reviewer`) must not invoke any skill
+- if a required capability has a corresponding `dtt-*` skill, `leader` must invoke that `dtt-*` skill before dispatch and must not delegate same-capability method selection to any subagent
+- `leader` must translate the selected method into explicit handoff instructions covering: objective, scope boundary, required method, prohibited actions, verification expectations, and required output shape
+- subagents must receive execution-ready handoff rather than method-selection responsibility
+- if a subagent determines that the handoff is insufficient to continue safely, it must report a blocker or request clarification from `leader`; it must not compensate by invoking a skill, selecting its own method, or expanding scope on its own
+
 ## Absorbed Subagent-Driven Discipline
 - preserve fresh context per task when dispatching; do not let downstream agents replay the full workflow on their own
 - if the task can be split into stable subtasks, dispatch on subtask boundaries instead of sending one vague large task

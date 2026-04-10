@@ -110,6 +110,8 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
 ```
 
+To replace an existing OpenCode plugin pin while reinstalling, set `DTT_PLUGIN_REF` before running the installer again.
+
 Detailed docs: [`.opencode/INSTALL.md`](./.opencode/INSTALL.md)
 
 ### Verify Installation

@@ -16,6 +16,7 @@ Other agents that read this file must not run any workflow logic from it.
 - subagents should prefer local task tools or domain skills; do not load a full workflow stack for a local task
 - when handoff is unclear, the subagent should report a blocker or escalation request instead of expanding scope on its own
 - if an external skill system defines subagent-stop semantics, subagents must obey them and continue executing within the handoff
+- built-in subagents (`analyzer`, `implementer`, `reviewer`) must not invoke any skill; if handoff is insufficient to proceed safely, they must report a blocker to `leader` rather than invoking a skill to compensate
 
 ## External Skill Compatibility
 - plugin-native method skills come first; when methodology support is needed, use the matching capability in `skills/` first

@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -144,6 +145,15 @@ class PlatformInstallDocsTests(unittest.TestCase):
 
         self.assertIn("Install-DoTheThing", ps1)
 
+    def test_opencode_installers_document_plugin_ref_override(self):
+        shell = (self.repo_root / "install" / "install.sh").read_text(encoding="utf-8")
+        ps1 = (self.repo_root / "install" / "install.ps1").read_text(encoding="utf-8")
+        doc = (self.repo_root / ".opencode" / "INSTALL.md").read_text(encoding="utf-8")
+
+        self.assertIn("DTT_PLUGIN_REF", shell)
+        self.assertIn("DTT_PLUGIN_REF", ps1)
+        self.assertIn("DTT_PLUGIN_REF", doc)
+
     def test_shell_installer_configures_opencode_plugin_entry(self):
         script = self.repo_root / "install" / "install.sh"
 
@@ -171,6 +181,119 @@ class PlatformInstallDocsTests(unittest.TestCase):
             self.assertIn(
                 "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git",
                 config["plugin"],
+            )
+
+    def test_shell_installer_updates_existing_opencode_plugin_entry_with_override(self):
+        script = self.repo_root / "install" / "install.sh"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp = Path(tmpdir)
+            config_dir = temp / "opencode-config"
+            config_dir.mkdir(parents=True)
+            (config_dir / "opencode.json").write_text(
+                json.dumps(
+                    {
+                        "plugin": [
+                            "other-plugin@1.0.0",
+                            "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#old",
+                            "do-the-thing@file:///tmp/local",
+                        ],
+                        "provider": "openai",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+            env["DTT_REPO_URL"] = str(self.repo_root)
+            env["DTT_INSTALL_ROOT"] = str(temp / "installed" / "do-the-thing")
+            env["OPENCODE_CONFIG_DIR"] = str(config_dir)
+            env["DTT_PLUGIN_REF"] = "v1.2.0"
+
+            subprocess.run(
+                ["bash", str(script), "opencode"],
+                check=True,
+                cwd=self.repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+            config = json.loads(
+                (config_dir / "opencode.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                config,
+                {
+                    "plugin": [
+                        "other-plugin@1.0.0",
+                        "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.2.0",
+                    ],
+                    "provider": "openai",
+                },
+            )
+
+    def test_powershell_installer_updates_existing_opencode_plugin_entry_with_override(
+        self,
+    ):
+        powershell = shutil.which("pwsh") or shutil.which("powershell")
+        if powershell is None:
+            self.skipTest("PowerShell runtime not available")
+
+        script = self.repo_root / "install" / "install.ps1"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp = Path(tmpdir)
+            config_dir = temp / "opencode-config"
+            config_dir.mkdir(parents=True)
+            (config_dir / "opencode.json").write_text(
+                json.dumps(
+                    {
+                        "plugin": [
+                            "other-plugin@1.0.0",
+                            "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#old",
+                            "do-the-thing@file:///tmp/local",
+                        ],
+                        "provider": "openai",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+            env["DTT_REPO_URL"] = str(self.repo_root)
+            env["DTT_INSTALL_ROOT"] = str(temp / "installed" / "do-the-thing")
+            env["OPENCODE_CONFIG_DIR"] = str(config_dir)
+            env["DTT_PLUGIN_REF"] = "v1.2.0"
+
+            subprocess.run(
+                [
+                    powershell,
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-Command",
+                    f"& {{ . '{script}'; Install-DoTheThing opencode }}",
+                ],
+                check=True,
+                cwd=self.repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+            config = json.loads(
+                (config_dir / "opencode.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                config,
+                {
+                    "plugin": [
+                        "other-plugin@1.0.0",
+                        "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.2.0",
+                    ],
+                    "provider": "openai",
+                },
             )
 
     def test_shell_installer_creates_codex_skill_symlink(self):

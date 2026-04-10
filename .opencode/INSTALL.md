@@ -14,10 +14,22 @@ OpenCode uses one-command native install and supports `agent router`.
 curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | bash -s -- opencode
 ```
 
+To pin or update the plugin reference while reinstalling:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.sh | DTT_PLUGIN_REF=v1.2.0 bash -s -- opencode
+```
+
 ### Windows PowerShell
 
 ```powershell
 irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
+```
+
+To pin or update the plugin reference while reinstalling:
+
+```powershell
+$env:DTT_PLUGIN_REF = 'v1.2.0'; irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
 ```
 
 ## Native Plugin Details
@@ -57,10 +69,11 @@ Start a new OpenCode session and ask for a task that should trigger workflow rou
 
 ## Updating
 
-Run the one-command installer again, or restart OpenCode after updating the configured plugin reference.
+Run the one-command installer again to update the configured `do-the-thing` plugin entry in place. The installer replaces any existing `do-the-thing@...` entries, dedupes repeated entries, and leaves unrelated plugins unchanged. Set `DTT_PLUGIN_REF` before rerunning if you want to move to a specific tag, branch, or commit, then restart OpenCode.
 
 ## Troubleshooting
 
 1. Check that the `plugin` line exists in your `opencode.json`
-2. Restart OpenCode after adding or changing the plugin line
-3. Confirm that `AGENTS.md`, `agents/`, `commands/`, `skills/`, and `tools/` were synced into your OpenCode config directory
+2. If needed, rerun the installer with `DTT_PLUGIN_REF=<ref>` to replace stale `do-the-thing` entries
+3. Restart OpenCode after adding or changing the plugin line
+4. Confirm that `AGENTS.md`, `agents/`, `commands/`, `skills/`, and `tools/` were synced into your OpenCode config directory
