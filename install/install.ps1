@@ -108,21 +108,22 @@ function Install-DoTheThing {
         @($config['plugin'])
       }
 
+      $doTheThingPattern = '^do-the-thing@'
       $nextPlugins = New-Object System.Collections.Generic.List[object]
       $insertAt = $null
       foreach ($plugin in $plugins) {
-        $isString = $plugin -is [string]
-        $isDoTheThing = $isString -and ($plugin -like 'do-the-thing@*')
-        if ($plugin -eq $pluginValue) {
-          if ($null -eq $insertAt) {
-            $insertAt = $nextPlugins.Count
+        if ($plugin -isnot [string]) {
+          if (-not $nextPlugins.Contains($plugin)) {
+            [void]$nextPlugins.Add($plugin)
           }
           continue
         }
-        if ($isDoTheThing) {
-          if ($null -eq $insertAt) {
-            $insertAt = $nextPlugins.Count
-          }
+        if ($plugin -eq $pluginValue) {
+          $insertAt = $nextPlugins.Count
+          continue
+        }
+        if ($plugin -match $doTheThingPattern) {
+          $insertAt = $nextPlugins.Count
           continue
         }
         if (-not $nextPlugins.Contains($plugin)) {
