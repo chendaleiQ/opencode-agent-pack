@@ -3,7 +3,7 @@ name: dtt-change-triage
 description: Leader-only skill. Run before any implementation. Outputs structured JSON for lane, tier, and minimal execution-path routing. Must not be invoked by analyzer, implementer, or reviewer.
 ---
 
-# Skill: dtt-change-triage (V5)
+# Skill: dtt-change-triage
 
 ## Purpose
 

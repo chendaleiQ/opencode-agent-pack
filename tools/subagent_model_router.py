@@ -16,6 +16,9 @@ from tools.provider_policy import (
 )
 
 
+# Reserved for future provider-specific model preferences.
+# Format: {provider: {tier: [preferred_model_ids]}}
+# Currently unused; heuristic classification (FAST_HINTS/TOP_HINTS) is the active path.
 PREFERRED_MODELS: Dict[str, Dict[str, List[str]]] = {}
 
 FAST_HINTS = [
@@ -488,7 +491,7 @@ def build_dispatch(
     if chat_only:
         return {
             "chatOnly": True,
-            "reason": "chat-only: no code/file/command action requested",
+            "reason": "chat-only",
             "dispatchOrder": [],
             "assignments": [],
             "provider": provider,

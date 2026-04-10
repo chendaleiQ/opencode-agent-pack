@@ -287,7 +287,7 @@ mode: subagent
 hidden: true
 ---
 
-# Agent: analyzer（V5）
+# Agent: analyzer
 ```
 
 ```markdown
@@ -297,7 +297,7 @@ mode: subagent
 hidden: true
 ---
 
-# Agent: implementer（V5）
+# Agent: implementer
 ```
 
 ```markdown
@@ -307,7 +307,7 @@ mode: subagent
 hidden: true
 ---
 
-# Agent: reviewer（V5）
+# Agent: reviewer
 ```
 
 - [ ] **Step 4: Run test to verify it passes**

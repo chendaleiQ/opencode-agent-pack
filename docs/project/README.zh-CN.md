@@ -262,7 +262,7 @@ PYTHONPATH=. python3 -m tools.subagent_model_router \
 - 若采用人工验证，代理应明确说明具体检查了什么
 - `leader` 只有在对应结束门满足后才应收口
 
-## V5 新增：Evals 与维护
+## Evals 与维护
 项目包含 `evals/`，作为 triage/lane/tier 行为的手工评估工具包。
 
 如何使用 evals：

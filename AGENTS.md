@@ -1,4 +1,4 @@
-# do-the-thing (V5)
+# do-the-thing
 
 ## Scope
 This file is only an agent registry.
