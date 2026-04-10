@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>do-the-thing</title>
+  </head>
+  <body>
+    <outline text="do-the-thing — 跨平台 Agent 工作流插件 v1.4.0">
+      <outline text="项目定位">
+        <outline text="核心理念：告诉一个 Agent 任务，让系统处理其余一切"/>
+        <outline text="单入口自动工作流系统"/>
+        <outline text="自动分流、路由、委派、升级、审查、验证、闭环"/>
+        <outline text="MIT 许可证"/>
+        <outline text="仓库：github.com/chendaleiQ/do-the-thing"/>
+      </outline>
+
+      <outline text="4 个 Agent 角色">
+        <outline text="leader（唯一入口）">
+          <outline text="所有工作流决策的拥有者"/>
+          <outline text="负责分流、Lane/Tier 选择"/>
+          <outline text="负责升级和最终闭环"/>
+          <outline text="运行在 tier_top（最强模型）"/>
+          <outline text="唯一可调用 dtt-* 技能的 Agent"/>
+        </outline>
+        <outline text="analyzer（分析子代理）">
+          <outline text="分析影响和边界"/>
+          <outline text="识别候选文件"/>
+          <outline text="检测敏感信号"/>
+          <outline text="不编辑代码，不做工作流决策"/>
+          <outline text="输出结构化 JSON"/>
+        </outline>
+        <outline text="implementer（实现子代理）">
+          <outline text="在授权范围内做变更"/>
+          <outline text="交接前必须自审"/>
+          <outline text="不可改 Lane/Tier，不可声明完成"/>
+          <outline text="输出 changedFiles / changeSummary / sensitiveSignals"/>
+        </outline>
+        <outline text="reviewer（审查子代理）">
+          <outline text="检查范围违规和敏感信号"/>
+          <outline text="评估风险和验证结果"/>
+          <outline text="不编辑代码，不声明完成"/>
+          <outline text="输出 verdict (pass/needs_changes/escalate)"/>
+          <outline text="输出 specCompliance / codeQuality / findings"/>
+        </outline>
+      </outline>
+
+      <outline text="Lane 分流（4 条通道）">
+        <outline text="quick - 低复杂度 / 低风险">
+          <outline text="最小路径：仅派发所需单一角色"/>
+          <outline text="如需多角色则升级为 standard"/>
+        </outline>
+        <outline text="standard - 高复杂度 / 低风险">
+          <outline text="完整链路：analyzer → implementer → reviewer"/>
+          <outline text="包含计划阶段"/>
+        </outline>
+        <outline text="guarded - 低复杂度 / 高风险">
+          <outline text="受限边界"/>
+          <outline text="tier_top 定义风险限额"/>
+        </outline>
+        <outline text="strict - 高复杂度 / 高风险">
+          <outline text="完整计划 + 严格边界"/>
+          <outline text="必须 top-tier 审查"/>
+        </outline>
+        <outline text="敏感信号自动升级（auth / db schema / public api / 破坏性操作）"/>
+      </outline>
+
+      <outline text="Tier 模型分级（3 级）">
+        <outline text="tier_top - 最强模型">
+          <outline text="入口、分流、严格边界、最终闭环"/>
+          <outline text="关键词：opus / pro / sonnet"/>
+        </outline>
+        <outline text="tier_mid - 平衡模型">
+          <outline text="审查、复杂分析、非最终验证"/>
+          <outline text="关键词：gpt-4 / claude-3.5-sonnet"/>
+        </outline>
+        <outline text="tier_fast - 快速廉价模型">
+          <outline text="低风险实现、扫描、重复性草稿"/>
+          <outline text="关键词：mini / flash / haiku"/>
+        </outline>
+      </outline>
+
+      <outline text="升级规则（只升不降）">
+        <outline text="Lane 升级：quick → standard/guarded/strict, standard → strict, guarded → strict"/>
+        <outline text="Tier 升级：tier_fast → tier_mid → tier_top"/>
+        <outline text="触发条件：范围超出预估 / 新敏感信号 / 审查员建议升级 / 验证失败 / 实现者报告不稳定 / quick 需多角色"/>
+      </outline>
+
+      <outline text="11 个内置方法技能（dtt-*）">
+        <outline text="仅 Leader 可调用">
+          <outline text="dtt-change-triage — 核心分流技能，输出结构化 JSON"/>
+          <outline text="dtt-brainstorming — 计划前设计澄清"/>
+          <outline text="dtt-writing-plans — 生成可执行实施计划"/>
+          <outline text="dtt-executing-plans — 批量执行已有计划"/>
+          <outline text="dtt-dispatching-parallel-agents — 安全并行派发决策"/>
+          <outline text="dtt-finishing-a-development-branch — 合并/PR/保留/丢弃流程"/>
+        </outline>
+        <outline text="所有角色可用">
+          <outline text="dtt-systematic-debugging — 根因优先调试（先调查后修复）"/>
+          <outline text="dtt-test-driven-development — TDD 纪律（无失败测试不写产品码）"/>
+          <outline text="dtt-requesting-code-review — 发现优先的审查格式"/>
+          <outline text="dtt-receiving-code-review — 处理审查反馈（最小修复，不扩范围）"/>
+          <outline text="dtt-verification-before-completion — 闭环前必须提供新鲜验证证据"/>
+        </outline>
+        <outline text="技能执行纪律：调用 dtt-* 技能时必须按顺序执行所有步骤，不可跳过、重排或选择性执行"/>
+      </outline>
+
+      <outline text="3 个 Python CLI 工具">
+        <outline text="subagent_model_router.py — 模型路由器">
+          <outline text="输入：分流 JSON"/>
+          <outline text="输出：子代理派发顺序 + 各角色模型选择"/>
+          <outline text="支持自动检测 OpenCode 配置中的模型"/>
+          <outline text="支持 OpenAI / OpenRouter / Anthropic / Ollama"/>
+          <outline text="环境变量覆盖：OPENCODE_MODEL_TIER_FAST/MID/TOP"/>
+        </outline>
+        <outline text="provider_policy.py — Provider 白名单管理">
+          <outline text="--detect-providers：自动检测候选 Provider"/>
+          <outline text="--print-allowed-providers：读取当前白名单"/>
+          <outline text="--set-allowed-providers-json：写入新白名单"/>
+        </outline>
+        <outline text="opencode_config.py — OpenCode 配置操作">
+          <outline text="--set-default-agent：设置默认 Agent"/>
+          <outline text="--set-opencode-plugin：添加/替换插件条目（去重+保位）"/>
+        </outline>
+      </outline>
+
+      <outline text="平台支持">
+        <outline text="OpenCode（已支持）">
+          <outline text="原生插件系统一键安装"/>
+          <outline text="支持 Agent Router"/>
+          <outline text="插件入口：.opencode/plugins/do-the-thing.js"/>
+        </outline>
+        <outline text="Codex（已支持）">
+          <outline text="一键安装（symlink skills/）"/>
+          <outline text="不支持 Agent Router"/>
+        </outline>
+        <outline text="Claude Code（延迟支持）">
+          <outline text="仅支持手动 --plugin-dir"/>
+          <outline text="无持久注册"/>
+        </outline>
+        <outline text="Cursor（延迟支持）">
+          <outline text="调查中"/>
+        </outline>
+      </outline>
+
+      <outline text="项目目录结构">
+        <outline text="agents/ — 4 个 Agent 定义文件（Markdown + YAML frontmatter）"/>
+        <outline text="skills/ — 11 个 dtt-* 技能目录（各含 SKILL.md）"/>
+        <outline text="commands/ — /providers 斜杠命令"/>
+        <outline text="tools/ — 3 个 Python CLI 工具"/>
+        <outline text="install/ — Bash + PowerShell 安装脚本"/>
+        <outline text="docs/project/ — 工作流/路由/发布/维护文档 + 中文 README"/>
+        <outline text="evals/ — 14 个手动评测用例 + 评分标准"/>
+        <outline text="tests/ — 50 个 pytest 测试用例"/>
+        <outline text=".opencode/ — OpenCode 插件 + 依赖"/>
+        <outline text=".codex/ — Codex 安装文档"/>
+        <outline text=".claude-plugin/ — Claude 插件清单"/>
+        <outline text=".cursor-plugin/ — Cursor 状态"/>
+        <outline text=".github/workflows/ — CI（pytest on Python 3.11）"/>
+      </outline>
+
+      <outline text="评测体系">
+        <outline text="5 维评分标准">
+          <outline text="A - 分流准确度（Triage）"/>
+          <outline text="B - 通道选择（Lane）"/>
+          <outline text="C - 模型层级（Tier）"/>
+          <outline text="D - 升级处理（Escalation）"/>
+          <outline text="E - 终止门控（End-gate）"/>
+          <outline text="首要指标：低高风险遗漏率"/>
+        </outline>
+        <outline text="14 个评测用例">
+          <outline text="Quick：文档修正 / 调查 / 审查"/>
+          <outline text="升级：quick→guarded / 验证失败必须升级"/>
+          <outline text="Standard：功能计划+批处理 / 并行独立切片"/>
+          <outline text="Guarded：敏感本地变更"/>
+          <outline text="Strict：DB 迁移 / 公开 API 契约变更"/>
+          <outline text="工作流：分支完成 / 仅聊天 / 外部循环 / 路由兼容"/>
+        </outline>
+      </outline>
+
+      <outline text="技术栈">
+        <outline text="Agent 定义：Markdown + YAML frontmatter"/>
+        <outline text="技能：Markdown（SKILL.md）"/>
+        <outline text="CLI 工具：Python 3（仅标准库，无第三方依赖）"/>
+        <outline text="测试：pytest + unittest"/>
+        <outline text="Lint：ruff"/>
+        <outline text="OpenCode 插件：JavaScript ESM + @opencode-ai/plugin SDK"/>
+        <outline text="安装器：Bash + PowerShell"/>
+        <outline text="CI：GitHub Actions"/>
+        <outline text="包管理：npm"/>
+      </outline>
+
+      <outline text="10 条核心设计原则">
+        <outline text="1. 单入口 — 只有 leader 是入口点"/>
+        <outline text="2. 最强模型控制决策和闭环"/>
+        <outline text="3. 先分流再实现 — 无 dtt-change-triage 不改代码"/>
+        <outline text="4. Lane + Tier 双维度自动路由"/>
+        <outline text="5. 只升不降的升级策略"/>
+        <outline text="6. 显式终止门控 — 每条通道有特定闭环要求"/>
+        <outline text="7. 最小安全委派 — quick 仅使用最小下游路径"/>
+        <outline text="8. 技能执行纪律 — dtt-* 技能必须逐步遵循"/>
+        <outline text="9. 插件原生优先 — dtt-* 技能优先于外部等价物"/>
+        <outline text="10. 反膨胀 — 每条新规则必须关联评测用例"/>
+      </outline>
+    </outline>
+  </body>
+</opml>
