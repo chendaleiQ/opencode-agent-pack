@@ -158,6 +158,8 @@ irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/in
 
 一条命令原生安装。
 
+安装器当前默认将 OpenCode 固定到最后一个引入 hooks 之前的 V1 release：`v1.4.0-pre-hooks`。
+
 macOS / Linux：
 
 ```bash
@@ -171,6 +173,8 @@ irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/in
 ```
 
 详细说明：[`../../.opencode/INSTALL.md`](../../.opencode/INSTALL.md)
+
+V2 架构蓝图：[`./V2-ARCHITECTURE.md`](./V2-ARCHITECTURE.md)
 
 ### 验证安装
 

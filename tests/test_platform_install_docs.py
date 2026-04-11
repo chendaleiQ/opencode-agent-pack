@@ -10,6 +10,7 @@ from pathlib import Path
 class PlatformInstallDocsTests(unittest.TestCase):
     def setUp(self):
         self.repo_root = Path(__file__).resolve().parents[1]
+        self.opencode_v1_release = "v1.4.0-pre-hooks"
 
     def test_platform_install_entry_files_exist(self):
         expected = [
@@ -77,13 +78,15 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("install.sh | bash -s -- opencode", content)
         self.assertIn("Install-DoTheThing opencode", content)
         self.assertIn(
-            '"plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git"]',
+            f'"plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#{self.opencode_v1_release}"]',
             content,
         )
         self.assertIn("Restart OpenCode", content)
-        self.assertIn("runtime guard", content)
-        self.assertIn("workflow state", content.lower())
-        self.assertIn("audit", content.lower())
+        self.assertIn("V1", content)
+        self.assertIn(self.opencode_v1_release, content)
+        self.assertIn("V2", content)
+        self.assertIn("does not include the OpenCode V2 runtime guard", content)
+        self.assertIn("V2-ARCHITECTURE.md", content)
         self.assertIn("Pack-owned built-in skills use a `dtt-` prefix", content)
         self.assertIn("detects duplicate skill names from multiple sources", content)
 
@@ -177,7 +180,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
             config = json.loads(config_path.read_text(encoding="utf-8"))
             self.assertIn("plugin", config)
             self.assertIn(
-                "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git",
+                f"do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#{self.opencode_v1_release}",
                 config["plugin"],
             )
 
@@ -294,6 +297,45 @@ class PlatformInstallDocsTests(unittest.TestCase):
                 },
             )
 
+    def test_powershell_installer_configures_opencode_plugin_entry_by_default(self):
+        powershell = shutil.which("pwsh") or shutil.which("powershell")
+        if powershell is None:
+            self.skipTest("PowerShell runtime not available")
+
+        script = self.repo_root / "install" / "install.ps1"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp = Path(tmpdir)
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+            env["DTT_REPO_URL"] = str(self.repo_root)
+            env["DTT_INSTALL_ROOT"] = str(temp / "installed" / "do-the-thing")
+            env["OPENCODE_CONFIG_DIR"] = str(temp / "opencode-config")
+
+            subprocess.run(
+                [
+                    powershell,
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-Command",
+                    f"& {{ . '{script}'; Install-DoTheThing opencode }}",
+                ],
+                check=True,
+                cwd=self.repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+            config_path = temp / "opencode-config" / "opencode.json"
+            self.assertTrue(config_path.exists())
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            self.assertIn("plugin", config)
+            self.assertIn(
+                f"do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#{self.opencode_v1_release}",
+                config["plugin"],
+            )
+
     def test_shell_installer_creates_codex_skill_symlink(self):
         script = self.repo_root / "install" / "install.sh"
 
@@ -345,10 +387,12 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("Claude Code: deferred", readme)
         self.assertIn("Codex: one-command install", readme)
         self.assertIn("Cursor: deferred", readme)
+        self.assertIn(self.opencode_v1_release, readme)
         self.assertIn("OpenCode：一条命令原生安装", zh)
         self.assertIn("Claude Code：暂缓", zh)
         self.assertIn("Codex：一条命令安装", zh)
         self.assertIn("Cursor：暂缓", zh)
+        self.assertIn(self.opencode_v1_release, zh)
 
     def test_readme_directory_tree_has_no_examples_or_pack_dir(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")

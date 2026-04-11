@@ -4,9 +4,11 @@ function Install-DoTheThing {
   $repoUrl = if ($env:DTT_REPO_URL) { $env:DTT_REPO_URL } else { 'https://github.com/chendaleiQ/do-the-thing.git' }
   $installRoot = if ($env:DTT_INSTALL_ROOT) { $env:DTT_INSTALL_ROOT } else { Join-Path $HOME '.local/share/do-the-thing' }
   $opencodeConfigDir = if ($env:OPENCODE_CONFIG_DIR) { $env:OPENCODE_CONFIG_DIR } else { Join-Path $HOME '.config/opencode' }
+  $defaultOpenCodeV1Ref = 'v1.4.0-pre-hooks'
   $pluginValue = 'do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git'
-  if ($env:DTT_PLUGIN_REF) {
-    $pluginValue = "$pluginValue#$($env:DTT_PLUGIN_REF)"
+  $pluginRef = if ($env:DTT_PLUGIN_REF) { $env:DTT_PLUGIN_REF } else { $defaultOpenCodeV1Ref }
+  if ($pluginRef) {
+    $pluginValue = "$pluginValue#$pluginRef"
   }
 
   if ($Platform -notin @('opencode', 'codex')) {
@@ -48,6 +50,11 @@ function Install-DoTheThing {
     }
   }
 
+  function Ensure-PythonAvailable {
+    if (Get-Command python3 -ErrorAction SilentlyContinue) { return }
+    throw 'Error: python3 is required for the OpenCode installer to update opencode.json. Please install python3, then rerun this installer.'
+  }
+
   # -----------------------------------------------------------------------
   # Repository helpers
   # -----------------------------------------------------------------------
@@ -80,7 +87,9 @@ function Install-DoTheThing {
   if ($Platform -eq 'codex') {
     Ensure-GitAvailable
   }
-  # Both opencode and codex targets need python3 available (opencode uses it for JSON config).
+  if ($Platform -eq 'opencode') {
+    Ensure-PythonAvailable
+  }
 
   # -----------------------------------------------------------------------
   # Platform install logic
@@ -98,7 +107,7 @@ function Install-DoTheThing {
       $configPath = Join-Path $opencodeConfigDir 'opencode.json'
 
       $env:OPENCODE_JSON = $configPath
-      $env:DTT_PLUGIN_REF = if ($env:DTT_PLUGIN_REF) { $env:DTT_PLUGIN_REF } else { '' }
+      $env:DTT_PLUGIN_REF = $pluginRef
       $pythonCode = @'
 import json
 import os
@@ -148,6 +157,7 @@ config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
       python3 -c $pythonCode
       Write-Host 'OpenCode install complete.'
       Write-Host "Verify: confirm $configPath contains the do-the-thing plugin entry then restart OpenCode."
+      Write-Host "Default OpenCode install pins the final pre-hooks V1 release: $defaultOpenCodeV1Ref"
       Write-Host 'Update: rerun with $env:DTT_PLUGIN_REF=<ref> to replace existing do-the-thing entries, then restart OpenCode.'
       Write-Host "Uninstall: remove do-the-thing from $configPath"
     }

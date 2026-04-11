@@ -91,6 +91,8 @@ Detailed docs: [`.codex/INSTALL.md`](./.codex/INSTALL.md)
 
 One-command native install.
 
+The installer currently defaults OpenCode to the final pre-hooks V1 release: `v1.4.0-pre-hooks`.
+
 macOS / Linux:
 
 ```bash
@@ -106,6 +108,8 @@ irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/in
 To replace an existing OpenCode plugin pin while reinstalling, set `DTT_PLUGIN_REF` before running the installer again.
 
 Detailed docs: [`.opencode/INSTALL.md`](./.opencode/INSTALL.md)
+
+V2 architecture blueprint: [`docs/project/V2-ARCHITECTURE.md`](./docs/project/V2-ARCHITECTURE.md)
 
 ### Verify Installation
 

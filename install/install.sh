@@ -5,7 +5,8 @@ REPO_URL="${DTT_REPO_URL:-https://github.com/chendaleiQ/do-the-thing.git}"
 INSTALL_ROOT="${DTT_INSTALL_ROOT:-${HOME}/.local/share/do-the-thing}"
 PLATFORM="${1:-}"
 OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-${HOME}/.config/opencode}"
-DTT_PLUGIN_REF="${DTT_PLUGIN_REF:-}"
+DTT_DEFAULT_OPENCODE_V1_REF="v1.4.0-pre-hooks"
+DTT_PLUGIN_REF="${DTT_PLUGIN_REF:-$DTT_DEFAULT_OPENCODE_V1_REF}"
 
 usage() {
   echo "usage: install.sh <opencode|codex>" >&2
@@ -173,6 +174,7 @@ OpenCode install complete.
 Verify: confirm $OPENCODE_CONFIG_DIR/opencode.json contains
   "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git${DTT_PLUGIN_REF:+#$DTT_PLUGIN_REF}"]
 Then restart OpenCode.
+Default OpenCode install pins the final pre-hooks V1 release: ${DTT_DEFAULT_OPENCODE_V1_REF}
 Update: rerun with DTT_PLUGIN_REF=<ref> to replace existing do-the-thing entries, then restart OpenCode.
 Uninstall: remove do-the-thing from $OPENCODE_CONFIG_DIR/opencode.json
 EOF
