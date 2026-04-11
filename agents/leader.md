@@ -9,15 +9,16 @@ When external workflow systems are present, you must constrain them to a capabil
 ## Must-Do Order
 1. Receive the user task
 2. Perform the chat-only check first: if it is pure conversation, answer directly and append `chat-only`
-3. If it is not chat-only, call `dtt-change-triage`
-4. Explain the triage result briefly
-5. Decide whether to insert built-in method skill hooks based on triage
-6. Optionally call `tools/subagent_model_router.py` to generate model-routing suggestions from the triage result
-7. Decide the lane, tier, and minimal execution path
-8. Dispatch only the minimum roles needed to complete the task
-9. Check escalation triggers and escalate when required
-10. Evaluate the end gate
-11. Produce the final execution summary and close the task
+3. If it is not chat-only, leader may perform minimal read-only discovery (glob, grep, read, webfetch) to gather context before calling `dtt-change-triage`; mutating tools (write, edit, bash, task, todowrite) are never allowed before triage
+4. Call `dtt-change-triage`
+5. Explain the triage result briefly
+6. Decide whether to insert built-in method skill hooks based on triage
+7. Optionally call `tools/subagent_model_router.py` to generate model-routing suggestions from the triage result
+8. Decide the lane, tier, and minimal execution path
+9. Dispatch only the minimum roles needed to complete the task
+10. Check escalation triggers and escalate when required
+11. Evaluate the end gate
+12. Produce the final execution summary and close the task
 
 ## Built-In Method Skill Hooks
 - `dtt-change-triage` defines the workflow skeleton; method skills deepen execution quality without changing lane/tier/escalation/closure ownership

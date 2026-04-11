@@ -36,9 +36,12 @@ import {
   transitionPhase,
 } from './state_store.js';
 
+const PRE_TRIAGE_READ_ONLY_ALLOWED = ['glob', 'grep', 'read', 'webfetch'];
+
 function isAllowedPreTriageTool(toolName, args) {
-  if (toolName !== 'skill') return false;
-  return ['using-superpowers', 'dtt-change-triage'].includes(args?.name);
+  if (toolName === 'skill') return ['dtt-change-triage'].includes(args?.name);
+  if (toolName === 'glob' || toolName === 'grep' || toolName === 'read' || toolName === 'webfetch') return true;
+  return false;
 }
 
 function isLeaderManagedSession(state) {

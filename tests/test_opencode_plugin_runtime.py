@@ -149,7 +149,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             )
         self.assertIn("blocked protected config edit", output)
 
-    def test_runtime_blocks_tool_execution_before_triage(self):
+    def test_runtime_allows_read_only_tools_before_triage(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -169,6 +169,35 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                     {{ tool: 'read', sessionID: 'sess-1', callID: 'call-read' }},
                     {{ args: {{ filePath: 'README.md' }} }}
                   );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual("allowed", output)
+
+    def test_runtime_blocks_mutating_tools_before_triage(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'write', sessionID: 'sess-1', callID: 'call-write' }},
+                    {{ args: {{ filePath: 'foo.txt', content: 'hi' }} }}
+                  );
                   console.log('not-blocked');
                 }} catch (error) {{
                   console.log(error.message);
@@ -178,7 +207,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             )
         self.assertIn("triage before execution", output)
 
-    def test_runtime_blocks_chat_to_workflow_until_triage_exists(self):
+    def test_runtime_allows_grep_before_triage(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -202,14 +231,14 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                     {{ tool: 'grep', sessionID: 'sess-1', callID: 'call-grep' }},
                     {{ args: {{ pattern: 'status', path: '.' }} }}
                   );
-                  console.log('not-blocked');
+                  console.log('allowed');
                 }} catch (error) {{
                   console.log(error.message);
                 }}
                 """,
                 env=env,
             )
-        self.assertIn("triage before execution", output)
+        self.assertEqual("allowed", output)
 
     def test_runtime_allows_tool_execution_after_triage_is_recorded(self):
         plugin_url = (
