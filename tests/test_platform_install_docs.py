@@ -10,10 +10,8 @@ from pathlib import Path
 class PlatformInstallDocsTests(unittest.TestCase):
     def setUp(self):
         self.repo_root = Path(__file__).resolve().parents[1]
-        package = json.loads((self.repo_root / "package.json").read_text(encoding="utf-8"))
-        self.latest_release_ref = f"v{package['version']}"
         self.default_opencode_plugin = (
-            f"do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#{self.latest_release_ref}"
+            "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#main"
         )
 
     def test_platform_install_entry_files_exist(self):
@@ -83,8 +81,8 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("Install-DoTheThing opencode", content)
         self.assertIn(f'"plugin": ["{self.default_opencode_plugin}"]', content)
         self.assertIn("Quick Start", content)
-        self.assertIn("latest stable release", content)
-        self.assertIn(self.latest_release_ref, content)
+        self.assertIn("repository `main` branch", content)
+        self.assertIn("PR merges to `main` become the default update path", content)
         self.assertIn("Restart OpenCode", content)
         self.assertIn("switch to `leader` and say `ready`", content)
         self.assertIn("Pack-owned built-in skills use a `dtt-` prefix", content)
@@ -155,13 +153,13 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("DTT_PLUGIN_REF", ps1)
         self.assertIn("DTT_PLUGIN_REF", doc)
 
-    def test_opencode_installers_use_latest_release_by_default_and_no_python_dependency_in_powershell(self):
+    def test_opencode_installers_use_main_by_default_and_no_python_dependency_in_powershell(self):
         shell = (self.repo_root / "install" / "install.sh").read_text(encoding="utf-8")
         ps1 = (self.repo_root / "install" / "install.ps1").read_text(encoding="utf-8")
 
-        self.assertIn(f'DTT_DEFAULT_OPENCODE_REF="{self.latest_release_ref}"', shell)
+        self.assertIn('DTT_DEFAULT_OPENCODE_REF="main"', shell)
         self.assertIn("if ($env:DTT_PLUGIN_REF)", ps1)
-        self.assertIn(self.latest_release_ref, ps1)
+        self.assertIn("$defaultOpenCodeRef = 'main'", ps1)
         self.assertNotIn("Ensure-PythonAvailable", ps1)
         self.assertNotIn("python3 -c", ps1)
 
@@ -461,14 +459,12 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("Claude Code: deferred", readme)
         self.assertIn("Codex: one-command install", readme)
         self.assertIn("Cursor: deferred", readme)
-        self.assertIn("latest stable release", readme)
-        self.assertIn(self.latest_release_ref, readme)
+        self.assertIn("repository `main` branch", readme)
         self.assertIn("OpenCode：一条命令原生安装", zh)
         self.assertIn("Claude Code：暂缓", zh)
         self.assertIn("Codex：一条命令安装", zh)
         self.assertIn("Cursor：暂缓", zh)
-        self.assertIn("最新稳定 release", zh)
-        self.assertIn(self.latest_release_ref, zh)
+        self.assertIn("仓库的 `main` 分支", zh)
 
     def test_readme_directory_tree_has_no_examples_or_pack_dir(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")

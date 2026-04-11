@@ -4,7 +4,7 @@ function Install-DoTheThing {
   $repoUrl = if ($env:DTT_REPO_URL) { $env:DTT_REPO_URL } else { 'https://github.com/chendaleiQ/do-the-thing.git' }
   $installRoot = if ($env:DTT_INSTALL_ROOT) { $env:DTT_INSTALL_ROOT } else { Join-Path $HOME '.local/share/do-the-thing' }
   $opencodeConfigDir = if ($env:OPENCODE_CONFIG_DIR) { $env:OPENCODE_CONFIG_DIR } else { Join-Path $HOME '.config/opencode' }
-  $defaultOpenCodeRef = 'v1.4.0'
+  $defaultOpenCodeRef = 'main'
   $pluginValue = 'do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git'
   $pluginRef = if ($env:DTT_PLUGIN_REF) { $env:DTT_PLUGIN_REF } else { $defaultOpenCodeRef }
   if ($pluginRef) {
@@ -150,7 +150,7 @@ function Install-DoTheThing {
       Write-Host 'Step 3/3: Done.'
       Write-Host 'OpenCode install complete.'
       Write-Host "Configured file: $configPath"
-      Write-Host "Default OpenCode install uses the latest stable release: $defaultOpenCodeRef"
+      Write-Host "Default OpenCode install tracks the repository main branch: $defaultOpenCodeRef"
       Write-Host 'Configured plugin entry:'
       Write-Host "  `"plugin`": [`"$pluginValue`"]"
       Write-Host 'Next step: restart OpenCode.'

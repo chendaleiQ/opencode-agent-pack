@@ -5,7 +5,7 @@ REPO_URL="${DTT_REPO_URL:-https://github.com/chendaleiQ/do-the-thing.git}"
 INSTALL_ROOT="${DTT_INSTALL_ROOT:-${HOME}/.local/share/do-the-thing}"
 PLATFORM="${1:-}"
 OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-${HOME}/.config/opencode}"
-DTT_DEFAULT_OPENCODE_REF="v1.4.0"
+DTT_DEFAULT_OPENCODE_REF="main"
 DTT_PLUGIN_REF="${DTT_PLUGIN_REF:-$DTT_DEFAULT_OPENCODE_REF}"
 
 usage() {
@@ -200,7 +200,7 @@ PY
 Step 3/3: Done.
 OpenCode install complete.
 Configured file: $opencode_json
-Default OpenCode install uses the latest stable release: ${DTT_DEFAULT_OPENCODE_REF}
+Default OpenCode install tracks the repository main branch: ${DTT_DEFAULT_OPENCODE_REF}
 Configured plugin entry:
   "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git${DTT_PLUGIN_REF:+#$DTT_PLUGIN_REF}"]
 Next step: restart OpenCode.

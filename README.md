@@ -91,7 +91,7 @@ Detailed docs: [`.codex/INSTALL.md`](./.codex/INSTALL.md)
 
 One-command native install.
 
-The installer defaults OpenCode to the latest stable release: `v1.4.0`.
+The installer defaults OpenCode to the repository `main` branch.
 
 macOS / Linux:
 
@@ -105,7 +105,7 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
 ```
 
-To replace an existing OpenCode plugin pin while reinstalling, set `DTT_PLUGIN_REF` before running the installer again.
+Merged PRs to `main` become the default update path. To replace that default with a specific pin while reinstalling, set `DTT_PLUGIN_REF` before running the installer again.
 
 Detailed docs: [`.opencode/INSTALL.md`](./.opencode/INSTALL.md)
 

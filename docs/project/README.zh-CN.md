@@ -158,7 +158,7 @@ irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/in
 
 一条命令原生安装。
 
-安装器默认使用最新稳定 release：`v1.4.0`。
+安装器默认跟随仓库的 `main` 分支。
 
 macOS / Linux：
 
@@ -172,7 +172,7 @@ Windows PowerShell：
 irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
 ```
 
-如需重新安装并替换已有 OpenCode plugin pin，请先设置 `DTT_PLUGIN_REF`。
+合并到 `main` 的 PR 会进入默认更新路径。如需重新安装并替换这个默认 pin，请先设置 `DTT_PLUGIN_REF`。
 
 详细说明：[`../../.opencode/INSTALL.md`](../../.opencode/INSTALL.md)
 

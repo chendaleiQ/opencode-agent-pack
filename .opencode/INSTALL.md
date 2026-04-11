@@ -6,7 +6,8 @@ OpenCode uses one-command native install and supports `agent router`.
 
 Prerequisite: install [OpenCode.ai](https://opencode.ai) first.
 
-The installer defaults to the latest stable release: `v1.4.0`.
+The installer defaults to the repository `main` branch.
+PR merges to `main` become the default update path.
 
 ### macOS / Linux
 
@@ -24,7 +25,7 @@ By default this writes:
 
 ```json
 {
-  "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.4.0"]
+  "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#main"]
 }
 ```
 
@@ -47,6 +48,7 @@ Restart OpenCode. That's it - the plugin auto-installs from GitHub, syncs the wo
 
 Run the installer again any time.
 
+By default, reinstalling keeps you on `main`, so merged PRs become available on the normal update path.
 If you want to pin a specific tag, branch, or commit, set `DTT_PLUGIN_REF` before reinstalling.
 
 ### macOS / Linux
@@ -84,4 +86,4 @@ If you also have older skill sources in `~/.agents/skills`, remove or disable th
 
 ## Advanced Notes
 
-The default install targets the latest stable release so new users get the newest published baseline without needing extra flags. If you need an older or experimental ref, override it with `DTT_PLUGIN_REF` and reinstall.
+This repo now treats `main` as the releasable default track. Keep development in PR branches, merge only releasable work to `main`, and use `DTT_PLUGIN_REF` only when you explicitly want to override that default.
