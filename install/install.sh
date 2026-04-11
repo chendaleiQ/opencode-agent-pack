@@ -5,8 +5,8 @@ REPO_URL="${DTT_REPO_URL:-https://github.com/chendaleiQ/do-the-thing.git}"
 INSTALL_ROOT="${DTT_INSTALL_ROOT:-${HOME}/.local/share/do-the-thing}"
 PLATFORM="${1:-}"
 OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-${HOME}/.config/opencode}"
-DTT_DEFAULT_OPENCODE_V1_REF="v1.4.0-pre-hooks"
-DTT_PLUGIN_REF="${DTT_PLUGIN_REF:-$DTT_DEFAULT_OPENCODE_V1_REF}"
+DTT_DEFAULT_OPENCODE_REF="main"
+DTT_PLUGIN_REF="${DTT_PLUGIN_REF:-$DTT_DEFAULT_OPENCODE_REF}"
 
 usage() {
   echo "usage: install.sh <opencode|codex>" >&2
@@ -118,13 +118,31 @@ EOF
 
 install_opencode() {
   # OpenCode's native plugin system fetches the pack directly from the git URL
-  # registered in opencode.json.  No local clone is needed — the plugin runtime
-  # resolves the git+https reference at startup and keeps its own cache.
+  # registered in opencode.json. No local clone is needed.
+  local config_dir_exists="false"
+  if [ -d "$OPENCODE_CONFIG_DIR" ]; then
+    config_dir_exists="true"
+  fi
+
   mkdir -p "$OPENCODE_CONFIG_DIR"
-  OPENCODE_JSON="$OPENCODE_CONFIG_DIR/opencode.json"
-  OPENCODE_JSON="$OPENCODE_JSON" DTT_PLUGIN_REF="$DTT_PLUGIN_REF" python3 <<'PY'
+  local opencode_json="$OPENCODE_CONFIG_DIR/opencode.json"
+
+  if [ "$config_dir_exists" != "true" ]; then
+    cat <<EOF
+Warning: OpenCode config directory was not found at $OPENCODE_CONFIG_DIR.
+The installer will create it now, but please confirm OpenCode is installed and uses this location.
+EOF
+  fi
+
+  echo "Step 1/3: Updating $opencode_json"
+  echo "Step 2/3: Ensuring do-the-thing plugin entry is present"
+
+  OPENCODE_JSON="$opencode_json" DTT_PLUGIN_REF="$DTT_PLUGIN_REF" python3 <<'PY'
+import datetime
 import json
 import os
+import shutil
+import sys
 from pathlib import Path
 
 config_path = Path(os.environ["OPENCODE_JSON"])
@@ -133,11 +151,19 @@ plugin_ref = os.environ.get("DTT_PLUGIN_REF", "").strip()
 if plugin_ref:
     plugin_value = f"{plugin_value}#{plugin_ref}"
 
+backup_path = None
 if config_path.exists():
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_path = config_path.with_name(f"{config_path.name}.bak.{timestamp}")
+    shutil.copy2(config_path, backup_path)
     try:
         data = json.loads(config_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        data = {}
+    except json.JSONDecodeError as exc:
+        print(
+            f"Invalid JSON in {config_path}; backup saved to {backup_path}. {exc}",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
 else:
     data = {}
 
@@ -165,18 +191,22 @@ else:
     next_plugins.insert(insert_at, plugin_value)
 
 data["plugin"] = next_plugins
-
 config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+if backup_path is not None:
+    print(f"Backup written to {backup_path}")
 PY
 
   cat <<EOF
+Step 3/3: Done.
 OpenCode install complete.
-Verify: confirm $OPENCODE_CONFIG_DIR/opencode.json contains
+Configured file: $opencode_json
+Default OpenCode install tracks the repository main branch: ${DTT_DEFAULT_OPENCODE_REF}
+Configured plugin entry:
   "plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git${DTT_PLUGIN_REF:+#$DTT_PLUGIN_REF}"]
-Then restart OpenCode.
-Default OpenCode install pins the final pre-hooks V1 release: ${DTT_DEFAULT_OPENCODE_V1_REF}
+Next step: restart OpenCode.
+Then test with: switch to leader and say ready
 Update: rerun with DTT_PLUGIN_REF=<ref> to replace existing do-the-thing entries, then restart OpenCode.
-Uninstall: remove do-the-thing from $OPENCODE_CONFIG_DIR/opencode.json
+Uninstall: remove do-the-thing from $opencode_json
 EOF
 }
 

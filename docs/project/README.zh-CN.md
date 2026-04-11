@@ -158,7 +158,7 @@ irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/in
 
 一条命令原生安装。
 
-安装器当前默认将 OpenCode 固定到最后一个引入 hooks 之前的 V1 release：`v1.4.0-pre-hooks`。
+安装器默认跟随仓库的 `main` 分支。
 
 macOS / Linux：
 
@@ -172,13 +172,16 @@ Windows PowerShell：
 irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
 ```
 
+合并到 `main` 的 PR 会进入默认更新路径。如需重新安装并替换这个默认 pin，请先设置 `DTT_PLUGIN_REF`。
+
 详细说明：[`../../.opencode/INSTALL.md`](../../.opencode/INSTALL.md)
 
 V2 架构蓝图：[`./V2-ARCHITECTURE.md`](./V2-ARCHITECTURE.md)
 
 ### 验证安装
 
-在目标平台开启一个新会话，给出一个应触发 workflow routing 的任务。会话应通过 `leader` 进入单入口流程、使用内建方法技能，并且只有在 OpenCode 中才会启用 `agent router`。
+重启 OpenCode，开启一个新会话，然后运行：`switch to leader and say ready`。
+会话应通过 `leader` 进入单入口流程、使用内建方法技能，并在 OpenCode 中保留 `agent router`。
 
 ## 使用
 

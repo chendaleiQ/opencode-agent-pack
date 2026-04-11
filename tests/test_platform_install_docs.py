@@ -10,7 +10,9 @@ from pathlib import Path
 class PlatformInstallDocsTests(unittest.TestCase):
     def setUp(self):
         self.repo_root = Path(__file__).resolve().parents[1]
-        self.opencode_v1_release = "v1.4.0-pre-hooks"
+        self.default_opencode_plugin = (
+            "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#main"
+        )
 
     def test_platform_install_entry_files_exist(self):
         expected = [
@@ -77,16 +79,12 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("curl -fsSL", content)
         self.assertIn("install.sh | bash -s -- opencode", content)
         self.assertIn("Install-DoTheThing opencode", content)
-        self.assertIn(
-            f'"plugin": ["do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#{self.opencode_v1_release}"]',
-            content,
-        )
+        self.assertIn(f'"plugin": ["{self.default_opencode_plugin}"]', content)
+        self.assertIn("Quick Start", content)
+        self.assertIn("repository `main` branch", content)
+        self.assertIn("PR merges to `main` become the default update path", content)
         self.assertIn("Restart OpenCode", content)
-        self.assertIn("V1", content)
-        self.assertIn(self.opencode_v1_release, content)
-        self.assertIn("V2", content)
-        self.assertIn("does not include the OpenCode V2 runtime guard", content)
-        self.assertIn("V2-ARCHITECTURE.md", content)
+        self.assertIn("switch to `leader` and say `ready`", content)
         self.assertIn("Pack-owned built-in skills use a `dtt-` prefix", content)
         self.assertIn("detects duplicate skill names from multiple sources", content)
 
@@ -155,6 +153,16 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("DTT_PLUGIN_REF", ps1)
         self.assertIn("DTT_PLUGIN_REF", doc)
 
+    def test_opencode_installers_use_main_by_default_and_no_python_dependency_in_powershell(self):
+        shell = (self.repo_root / "install" / "install.sh").read_text(encoding="utf-8")
+        ps1 = (self.repo_root / "install" / "install.ps1").read_text(encoding="utf-8")
+
+        self.assertIn('DTT_DEFAULT_OPENCODE_REF="main"', shell)
+        self.assertIn("if ($env:DTT_PLUGIN_REF)", ps1)
+        self.assertIn("$defaultOpenCodeRef = 'main'", ps1)
+        self.assertNotIn("Ensure-PythonAvailable", ps1)
+        self.assertNotIn("python3 -c", ps1)
+
     def test_shell_installer_configures_opencode_plugin_entry(self):
         script = self.repo_root / "install" / "install.sh"
 
@@ -179,10 +187,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
             self.assertTrue(config_path.exists())
             config = json.loads(config_path.read_text(encoding="utf-8"))
             self.assertIn("plugin", config)
-            self.assertIn(
-                f"do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#{self.opencode_v1_release}",
-                config["plugin"],
-            )
+            self.assertIn(self.default_opencode_plugin, config["plugin"])
 
     def test_shell_installer_updates_existing_opencode_plugin_entry_with_override(self):
         script = self.repo_root / "install" / "install.sh"
@@ -331,10 +336,77 @@ class PlatformInstallDocsTests(unittest.TestCase):
             self.assertTrue(config_path.exists())
             config = json.loads(config_path.read_text(encoding="utf-8"))
             self.assertIn("plugin", config)
-            self.assertIn(
-                f"do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#{self.opencode_v1_release}",
-                config["plugin"],
+            self.assertIn(self.default_opencode_plugin, config["plugin"])
+
+    def test_shell_opencode_installer_rejects_invalid_json_and_keeps_backup(self):
+        script = self.repo_root / "install" / "install.sh"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp = Path(tmpdir)
+            config_dir = temp / "opencode-config"
+            config_dir.mkdir(parents=True)
+            config_path = config_dir / "opencode.json"
+            original = '{ invalid json\n'
+            config_path.write_text(original, encoding="utf-8")
+
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+            env["OPENCODE_CONFIG_DIR"] = str(config_dir)
+
+            result = subprocess.run(
+                ["bash", str(script), "opencode"],
+                cwd=self.repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
             )
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("Invalid JSON", result.stderr)
+            self.assertEqual(original, config_path.read_text(encoding="utf-8"))
+            backups = list(config_dir.glob("opencode.json.bak.*"))
+            self.assertEqual(1, len(backups))
+            self.assertEqual(original, backups[0].read_text(encoding="utf-8"))
+
+    def test_powershell_opencode_installer_rejects_invalid_json_and_keeps_backup(self):
+        powershell = shutil.which("pwsh") or shutil.which("powershell")
+        if powershell is None:
+            self.skipTest("PowerShell runtime not available")
+
+        script = self.repo_root / "install" / "install.ps1"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp = Path(tmpdir)
+            config_dir = temp / "opencode-config"
+            config_dir.mkdir(parents=True)
+            config_path = config_dir / "opencode.json"
+            original = '{ invalid json\n'
+            config_path.write_text(original, encoding="utf-8")
+
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+            env["OPENCODE_CONFIG_DIR"] = str(config_dir)
+
+            result = subprocess.run(
+                [
+                    powershell,
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-Command",
+                    f"& {{ . '{script}'; Install-DoTheThing opencode }}",
+                ],
+                cwd=self.repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("Invalid JSON", result.stderr)
+            self.assertEqual(original, config_path.read_text(encoding="utf-8"))
+            backups = list(config_dir.glob("opencode.json.bak.*"))
+            self.assertEqual(1, len(backups))
+            self.assertEqual(original, backups[0].read_text(encoding="utf-8"))
 
     def test_shell_installer_creates_codex_skill_symlink(self):
         script = self.repo_root / "install" / "install.sh"
@@ -387,12 +459,12 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("Claude Code: deferred", readme)
         self.assertIn("Codex: one-command install", readme)
         self.assertIn("Cursor: deferred", readme)
-        self.assertIn(self.opencode_v1_release, readme)
+        self.assertIn("repository `main` branch", readme)
         self.assertIn("OpenCode：一条命令原生安装", zh)
         self.assertIn("Claude Code：暂缓", zh)
         self.assertIn("Codex：一条命令安装", zh)
         self.assertIn("Cursor：暂缓", zh)
-        self.assertIn(self.opencode_v1_release, zh)
+        self.assertIn("仓库的 `main` 分支", zh)
 
     def test_readme_directory_tree_has_no_examples_or_pack_dir(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")

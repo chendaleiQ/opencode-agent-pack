@@ -123,6 +123,9 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
+        payload_text = json.dumps(
+            "standard | high | low | reviewerPassed | closeReason\nchangeSummary: test"
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             env = os.environ.copy()
             env["OPENCODE_CONFIG_DIR"] = tmpdir
@@ -138,7 +141,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                   {{ tool: 'edit', sessionID: 'sess-1', callID: 'call-3', args: {{ filePath: 'src/a.ts' }} }},
                   {{ title: 'edit', output: '', metadata: {{}} }}
                 );
-                const payload = {{ text: {json.dumps("standard | high | low | reviewerPassed | closeReason\nchangeSummary: test")} }};
+                const payload = {{ text: {payload_text} }};
                 await hooks['experimental.text.complete'](
                   {{ sessionID: 'sess-1', messageID: 'm1', partID: 'p1' }},
                   payload

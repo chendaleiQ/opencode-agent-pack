@@ -4,9 +4,9 @@ function Install-DoTheThing {
   $repoUrl = if ($env:DTT_REPO_URL) { $env:DTT_REPO_URL } else { 'https://github.com/chendaleiQ/do-the-thing.git' }
   $installRoot = if ($env:DTT_INSTALL_ROOT) { $env:DTT_INSTALL_ROOT } else { Join-Path $HOME '.local/share/do-the-thing' }
   $opencodeConfigDir = if ($env:OPENCODE_CONFIG_DIR) { $env:OPENCODE_CONFIG_DIR } else { Join-Path $HOME '.config/opencode' }
-  $defaultOpenCodeV1Ref = 'v1.4.0-pre-hooks'
+  $defaultOpenCodeRef = 'main'
   $pluginValue = 'do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git'
-  $pluginRef = if ($env:DTT_PLUGIN_REF) { $env:DTT_PLUGIN_REF } else { $defaultOpenCodeV1Ref }
+  $pluginRef = if ($env:DTT_PLUGIN_REF) { $env:DTT_PLUGIN_REF } else { $defaultOpenCodeRef }
   if ($pluginRef) {
     $pluginValue = "$pluginValue#$pluginRef"
   }
@@ -14,10 +14,6 @@ function Install-DoTheThing {
   if ($Platform -notin @('opencode', 'codex')) {
     throw 'usage: Install-DoTheThing <opencode|codex>'
   }
-
-  # -----------------------------------------------------------------------
-  # Dependency helpers
-  # -----------------------------------------------------------------------
 
   function Ensure-GitAvailable {
     if (Get-Command git -ErrorAction SilentlyContinue) { return }
@@ -40,7 +36,6 @@ function Install-DoTheThing {
     }
 
     if ($installed) {
-      # Refresh PATH so the current session can find git
       $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
                   [System.Environment]::GetEnvironmentVariable('Path', 'User')
     }
@@ -49,15 +44,6 @@ function Install-DoTheThing {
       throw 'Error: git is still not available after install attempt. Please install git manually, then rerun this installer.'
     }
   }
-
-  function Ensure-PythonAvailable {
-    if (Get-Command python3 -ErrorAction SilentlyContinue) { return }
-    throw 'Error: python3 is required for the OpenCode installer to update opencode.json. Please install python3, then rerun this installer.'
-  }
-
-  # -----------------------------------------------------------------------
-  # Repository helpers
-  # -----------------------------------------------------------------------
 
   function Sync-RepoClone {
     New-Item -ItemType Directory -Force -Path (Split-Path $installRoot -Parent) | Out-Null
@@ -80,84 +66,95 @@ function Install-DoTheThing {
     }
   }
 
-  # -----------------------------------------------------------------------
-  # Ensure dependencies for the chosen target
-  # -----------------------------------------------------------------------
+  function Backup-File([string]$Path) {
+    $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $backupPath = "$Path.bak.$timestamp"
+    Copy-Item -LiteralPath $Path -Destination $backupPath -Force
+    return $backupPath
+  }
+
+  function Read-JsonObject([string]$Path) {
+    if (-not (Test-Path $Path)) {
+      return @{}
+    }
+
+    $backupPath = Backup-File $Path
+    try {
+      $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+      if ([string]::IsNullOrWhiteSpace($raw)) {
+        Write-Host "Backup written to $backupPath"
+        return @{}
+      }
+      $parsed = $raw | ConvertFrom-Json -AsHashtable -Depth 100 -ErrorAction Stop
+      if ($null -eq $parsed) {
+        $parsed = @{}
+      }
+      Write-Host "Backup written to $backupPath"
+      return $parsed
+    } catch {
+      throw "Invalid JSON in $Path; backup saved to $backupPath. $($_.Exception.Message)"
+    }
+  }
 
   if ($Platform -eq 'codex') {
     Ensure-GitAvailable
   }
-  if ($Platform -eq 'opencode') {
-    Ensure-PythonAvailable
-  }
-
-  # -----------------------------------------------------------------------
-  # Platform install logic
-  # -----------------------------------------------------------------------
 
   switch ($Platform) {
     'opencode' {
-      # OpenCode's native plugin system fetches the pack directly from the git
-      # URL registered in opencode.json.  No local clone is needed — the plugin
-      # runtime resolves the git+https reference at startup and keeps its own cache.
-      #
-      # Delegate JSON manipulation to a Python snippet so the behaviour is
-      # identical to the shell (bash) installer regardless of PowerShell version.
+      $configDirExists = Test-Path $opencodeConfigDir
       New-Item -ItemType Directory -Force -Path $opencodeConfigDir | Out-Null
       $configPath = Join-Path $opencodeConfigDir 'opencode.json'
 
-      $env:OPENCODE_JSON = $configPath
-      $env:DTT_PLUGIN_REF = $pluginRef
-      $pythonCode = @'
-import json
-import os
-from pathlib import Path
+      if (-not $configDirExists) {
+        Write-Warning "OpenCode config directory was not found at $opencodeConfigDir. The installer will create it now, but please confirm OpenCode is installed and uses this location."
+      }
 
-config_path = Path(os.environ["OPENCODE_JSON"])
-plugin_value = "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git"
-plugin_ref = os.environ.get("DTT_PLUGIN_REF", "").strip()
-if plugin_ref:
-    plugin_value = f"{plugin_value}#{plugin_ref}"
+      Write-Host "Step 1/3: Updating $configPath"
+      Write-Host 'Step 2/3: Ensuring do-the-thing plugin entry is present'
 
-if config_path.exists():
-    try:
-        data = json.loads(config_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        data = {}
-else:
-    data = {}
+      $data = Read-JsonObject $configPath
+      $plugins = @()
+      if ($data.ContainsKey('plugin') -and $data['plugin'] -is [System.Collections.IEnumerable] -and $data['plugin'] -isnot [string]) {
+        foreach ($item in $data['plugin']) {
+          $plugins += [string]$item
+        }
+      }
 
-plugins = data.get("plugin")
-if not isinstance(plugins, list):
-    plugins = []
+      $nextPlugins = New-Object System.Collections.Generic.List[string]
+      $insertAt = $null
+      foreach ($plugin in $plugins) {
+        if ($plugin -eq $pluginValue) {
+          if ($null -eq $insertAt) { $insertAt = $nextPlugins.Count }
+          continue
+        }
+        if ($plugin.StartsWith('do-the-thing@')) {
+          if ($null -eq $insertAt) { $insertAt = $nextPlugins.Count }
+          continue
+        }
+        if (-not $nextPlugins.Contains($plugin)) {
+          [void]$nextPlugins.Add($plugin)
+        }
+      }
 
-next_plugins = []
-insert_at = None
-for plugin in plugins:
-    if plugin == plugin_value:
-        if insert_at is None:
-            insert_at = len(next_plugins)
-        continue
-    if isinstance(plugin, str) and plugin.startswith("do-the-thing@"):
-        if insert_at is None:
-            insert_at = len(next_plugins)
-        continue
-    if plugin not in next_plugins:
-        next_plugins.append(plugin)
+      if ($null -eq $insertAt) {
+        [void]$nextPlugins.Add($pluginValue)
+      } else {
+        $nextPlugins.Insert($insertAt, $pluginValue)
+      }
 
-if insert_at is None:
-    next_plugins.append(plugin_value)
-else:
-    next_plugins.insert(insert_at, plugin_value)
+      $data['plugin'] = @($nextPlugins.ToArray())
+      $json = $data | ConvertTo-Json -Depth 100
+      Set-Content -LiteralPath $configPath -Value ($json + "`n") -Encoding UTF8
 
-data["plugin"] = next_plugins
-
-config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-'@
-      python3 -c $pythonCode
+      Write-Host 'Step 3/3: Done.'
       Write-Host 'OpenCode install complete.'
-      Write-Host "Verify: confirm $configPath contains the do-the-thing plugin entry then restart OpenCode."
-      Write-Host "Default OpenCode install pins the final pre-hooks V1 release: $defaultOpenCodeV1Ref"
+      Write-Host "Configured file: $configPath"
+      Write-Host "Default OpenCode install tracks the repository main branch: $defaultOpenCodeRef"
+      Write-Host 'Configured plugin entry:'
+      Write-Host "  `"plugin`": [`"$pluginValue`"]"
+      Write-Host 'Next step: restart OpenCode.'
+      Write-Host 'Then test with: switch to leader and say ready'
       Write-Host 'Update: rerun with $env:DTT_PLUGIN_REF=<ref> to replace existing do-the-thing entries, then restart OpenCode.'
       Write-Host "Uninstall: remove do-the-thing from $configPath"
     }

@@ -91,7 +91,7 @@ Detailed docs: [`.codex/INSTALL.md`](./.codex/INSTALL.md)
 
 One-command native install.
 
-The installer currently defaults OpenCode to the final pre-hooks V1 release: `v1.4.0-pre-hooks`.
+The installer defaults OpenCode to the repository `main` branch.
 
 macOS / Linux:
 
@@ -105,7 +105,7 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/install/install.ps1 | iex; Install-DoTheThing opencode
 ```
 
-To replace an existing OpenCode plugin pin while reinstalling, set `DTT_PLUGIN_REF` before running the installer again.
+Merged PRs to `main` become the default update path. To replace that default with a specific pin while reinstalling, set `DTT_PLUGIN_REF` before running the installer again.
 
 Detailed docs: [`.opencode/INSTALL.md`](./.opencode/INSTALL.md)
 
@@ -113,7 +113,8 @@ V2 architecture blueprint: [`docs/project/V2-ARCHITECTURE.md`](./docs/project/V2
 
 ### Verify Installation
 
-Start a new session in your chosen platform and ask for a task that should trigger workflow routing. The session should route through `leader`, use the built-in method skills, and only use `agent router` when running in OpenCode.
+Restart OpenCode, start a new session, then run: `switch to leader and say ready`.
+The session should route through `leader`, use the built-in method skills, and keep `agent router` available in OpenCode.
 
 ## Use
 

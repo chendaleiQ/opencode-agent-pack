@@ -2,6 +2,14 @@
 
 This project uses semantic versioning: `MAJOR.MINOR.PATCH`.
 
+## Branch and Merge Policy
+
+- protect the `main` branch
+- main must stay releasable
+- all development should land through pull requests instead of direct commits to `main`
+- only merge pull requests that are ready to release
+- if a change is not ready for release, keep it in a PR branch until it is
+
 ## Version Levels
 
 ## PATCH (x.y.Z)
