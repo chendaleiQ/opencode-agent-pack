@@ -89,12 +89,29 @@ class WorkflowStateStoreTests(unittest.TestCase):
                 f"""
                 const mod = await import({json.dumps(module_url)});
                 const context = {{ configDir: {json.dumps(tmpdir)}, projectKey: 'proj-a', sessionID: 'sess-1' }};
+                mod.recordTriage(context, {{ lane: 'quick', complexity: 'low', risk: 'low', needsReviewer: false, finalApprovalTier: 'tier_top' }});
                 mod.recordEditedFile(context, 'src/a.ts');
                 console.log(JSON.stringify(mod.loadState(context)));
                 """
             )
         state = json.loads(output)
         self.assertEqual("implementing", state["phase"])
+
+    def test_edit_without_triage_does_not_mark_state_implementing(self):
+        module_url = (
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "state_store.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(module_url)});
+                const context = {{ configDir: {json.dumps(tmpdir)}, projectKey: 'proj-a', sessionID: 'sess-1' }};
+                mod.recordEditedFile(context, 'src/a.ts');
+                console.log(JSON.stringify(mod.loadState(context)));
+                """
+            )
+        state = json.loads(output)
+        self.assertEqual("created", state["phase"])
 
     def test_manual_phase_transition_to_closable_is_recorded(self):
         module_url = (

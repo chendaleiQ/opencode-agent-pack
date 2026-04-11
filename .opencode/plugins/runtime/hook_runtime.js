@@ -16,6 +16,7 @@ import {
 import { appendAuditRecord } from './audit_store.js';
 import { getProfileFeatures } from './profiles.js';
 import {
+  hasValidTriage,
   loadState,
   markClosable,
   markClosed,
@@ -34,6 +35,26 @@ import {
   saveState,
   transitionPhase,
 } from './state_store.js';
+
+function isAllowedPreTriageTool(toolName, args) {
+  if (toolName !== 'skill') return false;
+  return ['using-superpowers', 'dtt-change-triage'].includes(args?.name);
+}
+
+function enforceTriageBeforeExecution(runtime, sessionID, kind, name, args) {
+  const context = buildContext(runtime, sessionID);
+  const state = loadState(context);
+  if (hasValidTriage(state)) return context;
+  if (kind === 'tool' && isAllowedPreTriageTool(name, args)) return context;
+
+  audit(runtime, {
+    type: `${kind}.blocked`,
+    sessionID,
+    [kind]: name,
+    reason: 'missing-triage',
+  });
+  throw new Error(`do-the-thing runtime blocked ${kind} execution: must run triage before execution`);
+}
 
 function buildContext(runtime, sessionID) {
   return {
@@ -89,7 +110,7 @@ export function createRuntimeHooks(runtime) {
     },
 
     'tool.execute.before': async (input, output) => {
-      const context = buildContext(runtime, input.sessionID);
+      const context = enforceTriageBeforeExecution(runtime, input.sessionID, 'tool', input.tool, output.args || {});
       const features = activeFeatures(runtime, input.sessionID);
       const args = output.args || {};
 
@@ -152,6 +173,7 @@ export function createRuntimeHooks(runtime) {
     },
 
     'command.execute.before': async (input) => {
+      enforceTriageBeforeExecution(runtime, input.sessionID, 'command', input.command, { arguments: input.arguments });
       audit(runtime, {
         type: 'command.execute.before',
         sessionID: input.sessionID,

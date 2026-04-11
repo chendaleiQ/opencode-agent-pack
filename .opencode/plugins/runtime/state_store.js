@@ -23,6 +23,15 @@ function evidenceEntry(kind, payload = {}) {
   };
 }
 
+export function hasValidTriage(state) {
+  return Boolean(
+    state?.triage?.lane
+      && state?.triage?.complexity
+      && state?.triage?.risk
+      && state?.triage?.finalApprovalTier,
+  );
+}
+
 export function inferEntryTypeFromText(text) {
   const normalized = String(text || '').toLowerCase();
   if (!normalized.trim()) return 'general';
@@ -166,7 +175,7 @@ export function recordEditedFile(context, filePath) {
     if (['passed', 'manual_passed'].includes(state.verification.status)) {
       state.verification.status = 'stale';
     }
-    if (state.phase !== 'closed') {
+    if (state.phase !== 'closed' && hasValidTriage(state)) {
       state.phase = 'implementing';
       state.phaseReason = `edited file: ${filePath}`;
       state.phaseHistory = [...(state.phaseHistory || []), phaseEntry('implementing', `edited file: ${filePath}`)].slice(-20);
