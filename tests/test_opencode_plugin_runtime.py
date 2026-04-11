@@ -65,6 +65,17 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                }
+            )
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             env = os.environ.copy()
             env["OPENCODE_CONFIG_DIR"] = tmpdir
@@ -76,6 +87,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                   directory: {json.dumps(str(self.repo_root))},
                   worktree: {json.dumps(str(self.repo_root))},
                 }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'sess-1', messageID: 'm0', partID: 'p0' }},
+                  {{ text: {triage_payload} }}
+                );
                 try {{
                   await hooks['tool.execute.before'](
                     {{ tool: 'bash', sessionID: 'sess-1', callID: 'call-1' }},
@@ -94,6 +109,17 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                }
+            )
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             env = os.environ.copy()
             env["OPENCODE_CONFIG_DIR"] = tmpdir
@@ -105,6 +131,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                   directory: {json.dumps(str(self.repo_root))},
                   worktree: {json.dumps(str(self.repo_root))},
                 }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'sess-1', messageID: 'm0', partID: 'p0' }},
+                  {{ text: {triage_payload} }}
+                );
                 try {{
                   await hooks['tool.execute.before'](
                     {{ tool: 'edit', sessionID: 'sess-1', callID: 'call-2' }},
@@ -118,6 +148,243 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertIn("blocked protected config edit", output)
+
+    def test_runtime_blocks_tool_execution_before_triage(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'read', sessionID: 'sess-1', callID: 'call-read' }},
+                    {{ args: {{ filePath: 'README.md' }} }}
+                  );
+                  console.log('not-blocked');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertIn("triage before execution", output)
+
+    def test_runtime_blocks_chat_to_workflow_until_triage_exists(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['chat.message'](
+                  {{ sessionID: 'sess-1', agent: 'leader', messageID: 'm1' }},
+                  {{ parts: [{{ text: 'What does git status do?' }}] }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'grep', sessionID: 'sess-1', callID: 'call-grep' }},
+                    {{ args: {{ pattern: 'status', path: '.' }} }}
+                  );
+                  console.log('not-blocked');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertIn("triage before execution", output)
+
+    def test_runtime_allows_tool_execution_after_triage_is_recorded(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                }
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'sess-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'read', sessionID: 'sess-1', callID: 'call-read' }},
+                    {{ args: {{ filePath: 'README.md' }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual("allowed", output)
+
+    def test_runtime_allows_pre_triage_skill_loading_for_triage_path(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'skill', sessionID: 'sess-1', callID: 'call-skill' }},
+                    {{ args: {{ name: 'dtt-change-triage' }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual("allowed", output)
+
+    def test_runtime_blocks_todowrite_before_triage(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'todowrite', sessionID: 'sess-1', callID: 'call-todo' }},
+                    {{ args: {{ todos: [] }} }}
+                  );
+                  console.log('not-blocked');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertIn("triage before execution", output)
+
+    def test_runtime_blocks_command_execution_before_triage(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                try {{
+                  await hooks['command.execute.before'](
+                    {{ command: 'providers', sessionID: 'sess-1', arguments: '' }},
+                    {{ parts: [] }}
+                  );
+                  console.log('not-blocked');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertIn("triage before execution", output)
+
+    def test_runtime_allows_command_execution_after_triage(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                }
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'sess-1', messageID: 'm0', partID: 'p0' }},
+                  {{ text: {triage_payload} }}
+                );
+                try {{
+                  await hooks['command.execute.before'](
+                    {{ command: 'providers', sessionID: 'sess-1', arguments: '' }},
+                    {{ parts: [] }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual("allowed", output)
 
     def test_runtime_rewrites_blocked_completion_attempt(self):
         plugin_url = (
