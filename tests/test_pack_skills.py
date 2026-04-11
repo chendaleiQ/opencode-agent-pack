@@ -56,7 +56,7 @@ class PackSkillsTests(unittest.TestCase):
             content,
         )
         self.assertIn(
-            "reviewer (`tier_mid`, using `dtt-requesting-code-review` output style)",
+            "reviewer (`tier_mid`, using `dtt-requesting-code-review` findings-first method, but the final delivered review must be JSON matching `agents/reviewer.md`)",
             content,
         )
         self.assertIn(
