@@ -121,6 +121,18 @@ function writeJson(filePath, data) {
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8');
 }
 
+function dedupeObjects(items) {
+  const seen = new Set();
+  const deduped = [];
+  for (const item of items) {
+    const key = JSON.stringify(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(item);
+  }
+  return deduped;
+}
+
 export function loadState({ configDir, projectKey, sessionID }) {
   const state = readJson(sessionStatePath(configDir, projectKey, sessionID));
   return state || createInitialState({ sessionID, projectKey });
@@ -234,6 +246,68 @@ export function recordReviewerResult(context, reviewer) {
     state.phase = 'reviewing';
     state.phaseReason = `review result: ${state.reviewer.status}`;
     state.phaseHistory = [...(state.phaseHistory || []), phaseEntry('reviewing', `review result: ${state.reviewer.status}`)].slice(-20);
+    return state;
+  });
+}
+
+export function mergeChildSessionState(context, childSessionID) {
+  if (!childSessionID || childSessionID === context.sessionID) return loadState(context);
+  const childState = readJson(sessionStatePath(context.configDir, context.projectKey, childSessionID));
+  if (!childState) return loadState(context);
+
+  return updateState(context, (state) => {
+    state.editedFiles = [...new Set([...(state.editedFiles || []), ...(childState.editedFiles || [])])];
+    if (!state.lastEditAt || (childState.lastEditAt && childState.lastEditAt > state.lastEditAt)) {
+      state.lastEditAt = childState.lastEditAt || state.lastEditAt;
+    }
+
+    for (const key of ['triage', 'review', 'verification', 'manual', 'escalation']) {
+      state.evidence[key] = dedupeObjects([
+        ...(state.evidence[key] || []),
+        ...(childState.evidence?.[key] || []),
+      ]).slice(-20);
+    }
+
+    if (!state.triage && childState.triage) {
+      state.triage = childState.triage;
+      state.profile = childState.profile || state.profile;
+    }
+
+    const childReviewerUpdated = childState.reviewer?.updatedAt || null;
+    const parentReviewerUpdated = state.reviewer?.updatedAt || null;
+    if (childReviewerUpdated && (!parentReviewerUpdated || childReviewerUpdated >= parentReviewerUpdated)) {
+      state.reviewer = {
+        ...state.reviewer,
+        ...childState.reviewer,
+      };
+      state.phase = 'reviewing';
+      state.phaseReason = `merged reviewer result from ${childSessionID}`;
+      state.phaseHistory = [...(state.phaseHistory || []), phaseEntry('reviewing', `merged reviewer result from ${childSessionID}`)].slice(-20);
+    }
+
+    const childVerificationAt = childState.verification?.lastRunAt || null;
+    const parentVerificationAt = state.verification?.lastRunAt || null;
+    if (childVerificationAt && (!parentVerificationAt || childVerificationAt >= parentVerificationAt)) {
+      state.verification = {
+        ...state.verification,
+        ...childState.verification,
+        commands: dedupeObjects([
+          ...(state.verification?.commands || []),
+          ...(childState.verification?.commands || []),
+        ]).slice(-20),
+        categories: [...new Set([...(state.verification?.categories || []), ...(childState.verification?.categories || [])])],
+        manualChecks: dedupeObjects([
+          ...(state.verification?.manualChecks || []),
+          ...(childState.verification?.manualChecks || []),
+        ]).slice(-20),
+      };
+      if (state.phase !== 'reviewing') {
+        state.phase = 'verifying';
+        state.phaseReason = `merged verification from ${childSessionID}`;
+        state.phaseHistory = [...(state.phaseHistory || []), phaseEntry('verifying', `merged verification from ${childSessionID}`)].slice(-20);
+      }
+    }
+
     return state;
   });
 }

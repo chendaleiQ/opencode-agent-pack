@@ -183,6 +183,160 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         state = json.loads(output)
         self.assertEqual("debug", state["entryType"])
 
+    def test_runtime_ignores_non_json_reviewer_output(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        reviewer_output = json.dumps(
+            """Findings\n无发现\n\nScope/Risk judgement\n范围保持在启动验证内，风险仍为低。\n\nVerification gaps\n无\n\nReviewer pass/fail\npass\n\n是否建议升级以及理由\n不建议升级。"""
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+
+                await hooks['chat.message'](
+                  {{ sessionID: 'review-1', agent: 'reviewer', messageID: 'm0' }},
+                  {{ parts: [{{ text: 'review this task' }}] }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'review-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {reviewer_output} }}
+                );
+
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'review-1.json'), 'utf-8'));
+                console.log(JSON.stringify({{
+                  reviewerStatus: state.reviewer.status,
+                  reviewEvidence: state.evidence.review,
+                }}));
+                """,
+                env=env,
+            )
+        state = json.loads(output)
+        self.assertEqual("missing", state["reviewerStatus"])
+        self.assertEqual([], state["reviewEvidence"])
+
+    def test_runtime_merges_reviewer_task_state_back_into_leader_session(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsReviewer": True,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        reviewer_output = json.dumps(
+            json.dumps(
+                {
+                    "verdict": "pass",
+                    "reviewTierUsed": "tier_mid",
+                    "specCompliance": "pass",
+                    "codeQuality": "pass",
+                    "mustEscalate": False,
+                    "recommendedLane": "standard",
+                    "recommendedTierUpgrade": {
+                        "needed": False,
+                        "from": "tier_mid",
+                        "to": "tier_mid",
+                        "reason": "",
+                    },
+                    "scopeDrift": False,
+                    "unresolvedRisk": False,
+                    "sensitiveHit": {
+                        "touchesAuth": False,
+                        "touchesDbSchema": False,
+                        "touchesPublicApi": False,
+                        "touchesDestructiveAction": False,
+                    },
+                    "verifyStatus": "passed",
+                    "endGateCheck": {
+                        "quickReady": False,
+                        "standardReady": True,
+                        "guardedReady": False,
+                        "strictReady": False,
+                    },
+                    "findings": [],
+                    "requiredActions": [],
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+
+                await hooks['chat.message'](
+                  {{ sessionID: 'review-1', agent: 'reviewer', messageID: 'm2' }},
+                  {{ parts: [{{ text: 'review this task' }}] }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'review-1', messageID: 'm3', partID: 'p3' }},
+                  {{ text: {reviewer_output} }}
+                );
+
+                await hooks['tool.execute.after'](
+                  {{
+                    tool: 'task',
+                    sessionID: 'leader-1',
+                    callID: 'call-review',
+                    args: {{ subagent_type: 'reviewer', description: '审查启动任务' }},
+                  }},
+                  {{
+                    title: '审查启动任务',
+                    metadata: {{ sessionID: 'review-1' }},
+                    output: 'done',
+                  }}
+                );
+
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify({{
+                  reviewerStatus: state.reviewer.status,
+                  reviewEvidence: state.evidence.review,
+                  phase: state.phase,
+                }}));
+                """,
+                env=env,
+            )
+        state = json.loads(output)
+        self.assertEqual("passed", state["reviewerStatus"])
+        self.assertEqual(1, len(state["reviewEvidence"]))
+        self.assertEqual("reviewing", state["phase"])
+
 
 if __name__ == "__main__":
     unittest.main()
