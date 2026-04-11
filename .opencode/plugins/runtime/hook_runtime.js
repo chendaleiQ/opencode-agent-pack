@@ -41,9 +41,15 @@ function isAllowedPreTriageTool(toolName, args) {
   return ['using-superpowers', 'dtt-change-triage'].includes(args?.name);
 }
 
+function isLeaderManagedSession(state) {
+  const agent = state?.latestUserMessage?.agent || null;
+  return !agent || agent === 'leader';
+}
+
 function enforceTriageBeforeExecution(runtime, sessionID, kind, name, args) {
   const context = buildContext(runtime, sessionID);
   const state = loadState(context);
+  if (!isLeaderManagedSession(state)) return context;
   if (hasValidTriage(state)) return context;
   if (kind === 'tool' && isAllowedPreTriageTool(name, args)) return context;
 
@@ -185,12 +191,14 @@ export function createRuntimeHooks(runtime) {
       if (!input.sessionID) return;
       const context = buildContext(runtime, input.sessionID);
       const state = loadState(context);
+      if (!isLeaderManagedSession(state)) return;
       output.system.push(buildSystemGuard(state));
     },
 
     'experimental.session.compacting': async (input, output) => {
       const context = buildContext(runtime, input.sessionID);
       const state = loadState(context);
+      if (!isLeaderManagedSession(state)) return;
       output.context.push(buildSystemGuard(state));
     },
 
@@ -208,6 +216,9 @@ export function createRuntimeHooks(runtime) {
       const verificationFailure = parseVerificationFailureFromText(output.text);
       if (verificationFailure) recordVerificationFailure(context, verificationFailure);
 
+      const currentState = loadState(context);
+      if (!isLeaderManagedSession(currentState)) return;
+
       const features = activeFeatures(runtime, input.sessionID);
       const gateOptions = {
         checkStaleness: features.evidenceStaleness,
@@ -215,9 +226,8 @@ export function createRuntimeHooks(runtime) {
       };
 
       if (features.closeGate) {
-        const current = loadState(context);
         const gatePreview = evaluateCloseGate({
-          ...current,
+          ...currentState,
           phase: 'closable',
         }, gateOptions);
         if (gatePreview.allowed) {
