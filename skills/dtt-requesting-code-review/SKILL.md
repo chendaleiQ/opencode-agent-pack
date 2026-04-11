@@ -18,3 +18,6 @@ description: Review method skill. Use when reviewer output should focus on findi
 - include file references when possible
 - keep summary secondary to findings
 - if no findings, say so explicitly and mention residual risk if any
+- output must be JSON, not prose sections
+- JSON must include at least `specCompliance`, `codeQuality`, and `findings`
+- when there are no findings, use `findings: []` instead of prose like `无发现`

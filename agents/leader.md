@@ -26,7 +26,7 @@ When external workflow systems are present, you must constrain them to a capabil
 - `bugfix|investigation + failure/uncertainty -> `dtt-systematic-debugging``
 - `feature|bugfix|behavior change with tests available -> `dtt-test-driven-development``
 - `multiple clearly independent slices -> `dtt-dispatching-parallel-agents``
-- `needsReviewer=true -> reviewer outputs a findings-first review using `dtt-requesting-code-review``
+- `needsReviewer=true -> reviewer outputs a findings-first review using `dtt-requesting-code-review`, but the final reviewer response must be JSON matching `agents/reviewer.md` output format`
 - `review feedback lands on implementer -> follow `dtt-receiving-code-review``
 - `before any completion claim -> `dtt-verification-before-completion``
 - `user enters merge/PR/keep/discard closing flow -> `dtt-finishing-a-development-branch``
@@ -113,7 +113,7 @@ When external workflow systems are present, you must constrain them to a capabil
 - `tier_top` writes a short plan
 - analyzer (`tier_fast` or `tier_mid`)
 - implementer (`tier_fast` or `tier_mid`)
-- reviewer (`tier_mid`, using `dtt-requesting-code-review` output style)
+- reviewer (`tier_mid`, using `dtt-requesting-code-review` findings-first method, but the final delivered review must be JSON matching `agents/reviewer.md`)
 - if review feedback appears, implementer handles it using `dtt-receiving-code-review`
 - run `dtt-verification-before-completion` before closing
 - after implementation and verification pass, move into `dtt-finishing-a-development-branch`
@@ -126,7 +126,7 @@ When external workflow systems are present, you must constrain them to a capabil
 - if this is a behavior-changing implementation task and testing is available, require `dtt-test-driven-development`
 - analyzer (`tier_mid`)
 - implementer (`tier_mid` or `tier_fast`, under restrictions)
-- reviewer (`tier_mid`, checking scope and risk and using `dtt-requesting-code-review` output style)
+- reviewer (`tier_mid`, checking scope and risk with `dtt-requesting-code-review` findings-first method, but the final delivered review must be JSON matching `agents/reviewer.md`)
 - if review feedback appears, implementer handles it using `dtt-receiving-code-review`
 - run `dtt-verification-before-completion` before closing
 - `tier_top` gives the final approval
@@ -142,7 +142,7 @@ When external workflow systems are present, you must constrain them to a capabil
 - `tier_top` defines boundaries, restrictions, and prohibited actions
 - analyzer (`tier_mid` or `tier_top`)
 - implementer executes step by step (`tier_mid`)
-- reviewer performs strict review/verification (`tier_top` or `tier_mid`, using `dtt-requesting-code-review` output style)
+- reviewer performs strict review/verification (`tier_top` or `tier_mid`, using `dtt-requesting-code-review` findings-first method, but the final delivered review must be JSON matching `agents/reviewer.md`)
 - if review feedback appears, implementer handles it using `dtt-receiving-code-review`
 - run `dtt-verification-before-completion` before closing
 - after implementation and verification pass, move into `dtt-finishing-a-development-branch`

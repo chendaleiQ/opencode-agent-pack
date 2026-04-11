@@ -19,6 +19,7 @@ import {
   loadState,
   markClosable,
   markClosed,
+  mergeChildSessionState,
   recordCompletionAttempt,
   recordEditedFile,
   recordLatestUserMessage,
@@ -55,6 +56,10 @@ function activeFeatures(runtime, sessionID) {
   const context = buildContext(runtime, sessionID);
   const state = loadState(context);
   return getProfileFeatures(state.profile || 'standard');
+}
+
+function childSessionIDFromOutput(output) {
+  return output?.metadata?.sessionID || output?.metadata?.sessionId || output?.sessionID || output?.sessionId || null;
 }
 
 export function createRuntimeHooks(runtime) {
@@ -128,6 +133,13 @@ export function createRuntimeHooks(runtime) {
         const category = classifyVerificationCommand(command);
         if (category) {
           recordVerification(context, category, command, output.title || 'bash');
+        }
+      }
+
+      if (input.tool === 'task') {
+        const childSessionID = childSessionIDFromOutput(output);
+        if (childSessionID) {
+          mergeChildSessionState(context, childSessionID);
         }
       }
 
