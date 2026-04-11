@@ -7,6 +7,13 @@ This document defines the false-classification correction process and the long-t
 2. Then optimize low-risk over-escalation
 3. Handle wording and UX details last
 
+## Development and Merge Discipline
+- All development should happen in pull requests.
+- Do not develop directly on `main`.
+- Treat `main` as protected and always releasable.
+- Before merging to `main`, confirm the change is acceptable to ship in the next release.
+- If a change is still exploratory, incomplete, or risky, keep it on the PR branch until it is ready.
+
 ## Fix Order When You Find a Misclassification
 1. Add a real case to `evals/cases` first, redacted if needed
 2. Use `evals/rubric.md` to describe the exact failure
