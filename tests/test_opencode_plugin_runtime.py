@@ -419,6 +419,135 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             )
         self.assertIn("Completion blocked by do-the-thing runtime.", output)
 
+    def test_runtime_non_leader_tool_bypasses_triage_gate(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['chat.message'](
+                  {{ sessionID: 'build-1', agent: 'plan', messageID: 'm1' }},
+                  {{ parts: [{{ text: 'make a plan' }}] }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'bash', sessionID: 'build-1', callID: 'call-build' }},
+                    {{ args: {{ command: 'npm run build' }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual("allowed", output)
+
+    def test_runtime_non_leader_command_bypasses_triage_gate(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['chat.message'](
+                  {{ sessionID: 'plan-1', agent: 'plan', messageID: 'm1' }},
+                  {{ parts: [{{ text: 'make a plan' }}] }}
+                );
+                try {{
+                  await hooks['command.execute.before'](
+                    {{ command: 'providers', sessionID: 'plan-1', arguments: '' }},
+                    {{ parts: [] }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual("allowed", output)
+
+    def test_runtime_non_leader_completion_is_not_rewritten(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        payload_text = json.dumps(
+            "standard | high | low | reviewerPassed | closeReason\nchangeSummary: test"
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['chat.message'](
+                  {{ sessionID: 'custom-1', agent: 'custom-agent', messageID: 'm1' }},
+                  {{ parts: [{{ text: 'do something else' }}] }}
+                );
+                const payload = {{ text: {payload_text} }};
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'custom-1', messageID: 'm2', partID: 'p2' }},
+                  payload
+                );
+                console.log(payload.text);
+                """,
+                env=env,
+            )
+        self.assertNotIn("Completion blocked by do-the-thing runtime.", output)
+
+    def test_runtime_non_leader_system_guard_is_not_injected(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['chat.message'](
+                  {{ sessionID: 'custom-1', agent: 'custom-agent', messageID: 'm1' }},
+                  {{ parts: [{{ text: 'do something else' }}] }}
+                );
+                const output = {{ system: [] }};
+                await hooks['experimental.chat.system.transform'](
+                  {{ sessionID: 'custom-1' }},
+                  output
+                );
+                console.log(JSON.stringify(output.system));
+                """,
+                env=env,
+            )
+        self.assertEqual("[]", output)
+
     def test_runtime_records_debug_entry_type_from_message(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"

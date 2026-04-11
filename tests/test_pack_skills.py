@@ -43,7 +43,6 @@ class PackSkillsTests(unittest.TestCase):
             "before any completion claim -> `dtt-verification-before-completion`",
             content,
         )
-
     def test_lane_protocols_include_method_skill_ordering(self):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
