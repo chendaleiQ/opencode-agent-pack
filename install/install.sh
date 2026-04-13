@@ -191,6 +191,7 @@ else:
     next_plugins.insert(insert_at, plugin_value)
 
 data["plugin"] = next_plugins
+data["default_agent"] = "leader"
 config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 if backup_path is not None:
     print(f"Backup written to {backup_path}")
