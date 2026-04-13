@@ -164,7 +164,7 @@ class PackSkillsTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("## Workflow at a Glance", content)
+        self.assertIn("## Project Docs", content)
         self.assertIn("docs/project/WORKFLOW.md", content)
         self.assertIn("docs/project/ROUTER.md", content)
         self.assertIn(
