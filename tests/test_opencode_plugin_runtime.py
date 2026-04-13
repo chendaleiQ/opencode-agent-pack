@@ -149,7 +149,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             )
         self.assertIn("blocked protected config edit", output)
 
-    def test_runtime_blocks_tool_execution_before_triage(self):
+    def test_runtime_blocks_bash_execution_before_triage(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -166,8 +166,8 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 }});
                 try {{
                   await hooks['tool.execute.before'](
-                    {{ tool: 'read', sessionID: 'sess-1', callID: 'call-read' }},
-                    {{ args: {{ filePath: 'README.md' }} }}
+                    {{ tool: 'bash', sessionID: 'sess-1', callID: 'call-bash' }},
+                    {{ args: {{ command: 'npm test' }} }}
                   );
                   console.log('not-blocked');
                 }} catch (error) {{
@@ -178,7 +178,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             )
         self.assertIn("triage before execution", output)
 
-    def test_runtime_blocks_chat_to_workflow_until_triage_exists(self):
+    def test_runtime_allows_pre_triage_read_only_discovery_tools(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -197,19 +197,30 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                   {{ sessionID: 'sess-1', agent: 'leader', messageID: 'm1' }},
                   {{ parts: [{{ text: 'What does git status do?' }}] }}
                 );
-                try {{
-                  await hooks['tool.execute.before'](
-                    {{ tool: 'grep', sessionID: 'sess-1', callID: 'call-grep' }},
-                    {{ args: {{ pattern: 'status', path: '.' }} }}
-                  );
-                  console.log('not-blocked');
-                }} catch (error) {{
-                  console.log(error.message);
+                const results = [];
+                for (const [tool, args] of [
+                  ['glob', {{ pattern: '**/*.md', path: '.' }}],
+                  ['grep', {{ pattern: 'status', path: '.' }}],
+                  ['read', {{ filePath: 'README.md' }}],
+                ]) {{
+                  try {{
+                    await hooks['tool.execute.before'](
+                      {{ tool, sessionID: 'sess-1', callID: `call-${{tool}}` }},
+                      {{ args }}
+                    );
+                    results.push(`${{tool}}:allowed`);
+                  }} catch (error) {{
+                    results.push(`${{tool}}:${{error.message}}`);
+                  }}
                 }}
+                console.log(JSON.stringify(results));
                 """,
                 env=env,
             )
-        self.assertIn("triage before execution", output)
+        self.assertEqual(
+            ["glob:allowed", "grep:allowed", "read:allowed"],
+            json.loads(output),
+        )
 
     def test_runtime_allows_tool_execution_after_triage_is_recorded(self):
         plugin_url = (
