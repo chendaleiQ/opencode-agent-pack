@@ -62,6 +62,17 @@ class PlatformInstallDocsTests(unittest.TestCase):
             content = path.read_text(encoding="utf-8")
             self.assertNotIn("Fetch and follow instructions from", content)
 
+    def test_git_has_no_tracked_pyc_files(self):
+        result = subprocess.run(
+            ["git", "ls-files", "*.pyc"],
+            check=True,
+            cwd=self.repo_root,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual("", result.stdout, "tracked .pyc files found")
+
     def test_claude_plugin_manifest_exists_and_has_required_fields(self):
         path = self.repo_root / ".claude-plugin" / "plugin.json"
         self.assertTrue(path.exists(), f"missing Claude plugin manifest: {path}")
@@ -126,13 +137,50 @@ class PlatformInstallDocsTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("OpenCode: one-command native install", readme)
-        self.assertIn("Claude Code: deferred", readme)
-        self.assertIn("Codex: one-command install", readme)
-        self.assertIn("Cursor: deferred", readme)
-        self.assertIn("one-command", codex.lower())
-        self.assertIn("deferred", cursor.lower())
-        self.assertIn("deferred", claude.lower())
+        def readme_section(title):
+            marker = f"### {title}\n\n"
+            start = readme.index(marker) + len(marker)
+            remainder = readme[start:]
+            next_section = remainder.find("\n### ")
+            if next_section != -1:
+                return remainder[:next_section]
+            return remainder
+
+        self.assertIn(
+            "Platform installation is one-command first for supported targets.",
+            readme,
+        )
+        self.assertIn("One-command native install.", readme_section("OpenCode"))
+        self.assertIn("One-command install.", readme_section("Codex"))
+        self.assertIn("Deferred.", readme_section("Cursor"))
+        self.assertIn("Deferred.", readme_section("Claude Code"))
+        self.assertIn("Codex uses one-command install.", codex)
+        self.assertIn(
+            "That path is still under investigation and is not part of the supported one-command install targets in this release.",
+            cursor,
+        )
+        self.assertIn("Claude Code support is **deferred**.", claude)
+        self.assertIn(
+            "Until Claude Code adds a way to persistently register a plugin directory, the one-command installer does not include a `claude` target.",
+            claude,
+        )
+
+    def test_readme_describes_runtime_enforcement_by_profile(self):
+        content = (self.repo_root / "README.md").read_text(encoding="utf-8")
+
+        workflow_section = content.split("## Workflow at a Glance\n", 1)[1].split(
+            "\n## User Entry Flow",
+            1,
+        )[0]
+
+        self.assertIn(
+            "- minimal (`quick`) keeps audit/state tracking but does not enforce close-time evidence gating or completion rewriting",
+            workflow_section,
+        )
+        self.assertIn(
+            "- standard and strict enforce close-time evidence gating and completion rewriting; strict also requires the full evidence set",
+            workflow_section,
+        )
 
     def test_installer_entrypoints_use_supported_target_names(self):
         shell = (self.repo_root / "install" / "install.sh").read_text(encoding="utf-8")
@@ -153,7 +201,9 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("DTT_PLUGIN_REF", ps1)
         self.assertIn("DTT_PLUGIN_REF", doc)
 
-    def test_opencode_installers_use_main_by_default_and_no_python_dependency_in_powershell(self):
+    def test_opencode_installers_use_main_by_default_and_no_python_dependency_in_powershell(
+        self,
+    ):
         shell = (self.repo_root / "install" / "install.sh").read_text(encoding="utf-8")
         ps1 = (self.repo_root / "install" / "install.ps1").read_text(encoding="utf-8")
 
@@ -346,7 +396,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
             config_dir = temp / "opencode-config"
             config_dir.mkdir(parents=True)
             config_path = config_dir / "opencode.json"
-            original = '{ invalid json\n'
+            original = "{ invalid json\n"
             config_path.write_text(original, encoding="utf-8")
 
             env = os.environ.copy()
@@ -380,7 +430,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
             config_dir = temp / "opencode-config"
             config_dir.mkdir(parents=True)
             config_path = config_dir / "opencode.json"
-            original = '{ invalid json\n'
+            original = "{ invalid json\n"
             config_path.write_text(original, encoding="utf-8")
 
             env = os.environ.copy()
@@ -455,11 +505,17 @@ class PlatformInstallDocsTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("OpenCode: one-command native install", readme)
-        self.assertIn("Claude Code: deferred", readme)
-        self.assertIn("Codex: one-command install", readme)
-        self.assertIn("Cursor: deferred", readme)
-        self.assertIn("repository `main` branch", readme)
+        for token in [
+            "OpenCode",
+            "one-command native install",
+            "Claude Code",
+            "Codex",
+            "one-command install",
+            "Cursor",
+            "deferred",
+            "repository `main` branch",
+        ]:
+            self.assertIn(token, readme)
         self.assertIn("OpenCode：一条命令原生安装", zh)
         self.assertIn("Claude Code：暂缓", zh)
         self.assertIn("Codex：一条命令安装", zh)
