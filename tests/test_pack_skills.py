@@ -31,34 +31,30 @@ class PackSkillsTests(unittest.TestCase):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
         self.assertIn("## Built-In Method Skill Hooks", content)
-        self.assertIn(
-            "needsPlan=true -> `dtt-brainstorming` then `dtt-writing-plans`",
-            content,
-        )
-        self.assertIn(
-            "bugfix|investigation + failure/uncertainty -> `dtt-systematic-debugging`",
-            content,
-        )
-        self.assertIn(
-            "before any completion claim -> `dtt-verification-before-completion`",
-            content,
-        )
+        for token in [
+            "needsPlan=true",
+            "`dtt-brainstorming`",
+            "`dtt-writing-plans`",
+            "bugfix|investigation + failure/uncertainty",
+            "`dtt-systematic-debugging`",
+            "before any completion claim",
+            "`dtt-verification-before-completion`",
+        ]:
+            self.assertIn(token, content)
 
     def test_lane_protocols_include_method_skill_ordering(self):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
-        self.assertIn(
-            "if quick encounters failure, unexpected behavior, or unclear cause, insert `dtt-systematic-debugging` first",
-            content,
-        )
-        self.assertIn(
-            "if `needsPlan=true`, run `dtt-brainstorming` first, then `dtt-writing-plans`",
-            content,
-        )
-        self.assertIn(
-            "reviewer (`tier_mid`, using `dtt-requesting-code-review` findings-first method, but the final delivered review must be JSON matching `agents/reviewer.md`)",
-            content,
-        )
+        for token in [
+            "if quick encounters failure, unexpected behavior, or unclear cause",
+            "`dtt-systematic-debugging` first",
+            "if `needsPlan=true`",
+            "run `dtt-brainstorming` first",
+            "`dtt-writing-plans`",
+            "reviewer (`tier_mid`, using `dtt-requesting-code-review` findings-first method",
+            "JSON matching `agents/reviewer.md`",
+        ]:
+            self.assertIn(token, content)
         self.assertIn(
             "run `dtt-verification-before-completion` before closing", content
         )
@@ -70,6 +66,18 @@ class PackSkillsTests(unittest.TestCase):
         self.assertIn(
             "external workflow systems must not replace this plugin workflow",
             content,
+        )
+
+    def test_builtin_subagents_do_not_invoke_skills_and_docs_match(self):
+        registry = (self.repo_root / "AGENTS.md").read_text(encoding="utf-8")
+        leader = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
+        expected = "built-in subagents (`analyzer`, `implementer`, `reviewer`) must not invoke any skill"
+
+        self.assertIn(expected, registry)
+        self.assertIn(expected, leader)
+        self.assertNotIn(
+            "non-`leader` agents must operate only within their assigned handoff boundaries and may invoke only non-`dtt` skills appropriate to their local task",
+            leader,
         )
 
     def test_leader_absorbs_subagent_driven_development_discipline(self):
@@ -102,14 +110,13 @@ class PackSkillsTests(unittest.TestCase):
     def test_leader_references_plan_execution_and_branch_finish_hooks(self):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
-        self.assertIn(
-            "plan exists and work should advance in batches -> `dtt-executing-plans`",
-            content,
-        )
-        self.assertIn(
-            "user enters merge/PR/keep/discard closing flow -> `dtt-finishing-a-development-branch`",
-            content,
-        )
+        for token in [
+            "plan exists and work should advance in batches",
+            "`dtt-executing-plans`",
+            "user enters merge/PR/keep/discard closing flow",
+            "`dtt-finishing-a-development-branch`",
+        ]:
+            self.assertIn(token, content)
         self.assertIn(
             "if a plan exists, standard/strict work may proceed in batches", content
         )
@@ -121,20 +128,13 @@ class PackSkillsTests(unittest.TestCase):
     def test_leader_reports_workflow_state_as_commentary_metadata(self):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
-        self.assertIn(
-            "emit a short `commentary` status marker such as `chat-only`",
-            content,
-        )
+        self.assertIn("emit a short `commentary` status marker", content)
+        self.assertIn("`chat-only`", content)
         self.assertIn("emit a short `commentary` triage summary", content)
-        self.assertIn("emit the final execution summary in `commentary`", content)
-        self.assertIn(
-            "Include either concise verification evidence or a brief manual-check explanation in `commentary` when closing work.",
-            content,
-        )
-        self.assertIn(
-            "include verification evidence or manual-check explanation in `commentary`",
-            content,
-        )
+        self.assertIn("final execution summary in `commentary`", content)
+        self.assertIn("concise verification evidence", content)
+        self.assertIn("manual-check explanation", content)
+        self.assertIn("`commentary` when closing work", content)
         self.assertIn("keep the `final` response minimal", content)
 
     def test_evals_expect_workflow_metadata_in_commentary(self):

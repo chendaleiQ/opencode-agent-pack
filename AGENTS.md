@@ -13,7 +13,7 @@ Other agents that read this file must not run any workflow logic from it.
 
 ## Subagent Boundaries
 - `analyzer` / `implementer` / `reviewer` only consume leader handoff; they do not rerun triage or recursively restart workflow routing
-- subagents should prefer local task tools or domain skills; do not load a full workflow stack for a local task
+- subagents should use local task tools only; do not load a full workflow stack or invoke skills for a local task
 - when handoff is unclear, the subagent should report a blocker or escalation request instead of expanding scope on its own
 - if an external skill system defines subagent-stop semantics, subagents must obey them and continue executing within the handoff
 - built-in subagents (`analyzer`, `implementer`, `reviewer`) must not invoke any skill; if handoff is insufficient to proceed safely, they must report a blocker to `leader` rather than invoking a skill to compensate

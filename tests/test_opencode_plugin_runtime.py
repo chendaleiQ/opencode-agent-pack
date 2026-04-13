@@ -744,6 +744,104 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual(1, len(state["reviewEvidence"]))
         self.assertEqual("reviewing", state["phase"])
 
+    def test_runtime_records_escalation_evidence_from_reviewer_upgrade_signal(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsReviewer": True,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        reviewer_output = json.dumps(
+            json.dumps(
+                {
+                    "verdict": "escalate",
+                    "reviewTierUsed": "tier_mid",
+                    "specCompliance": "fail",
+                    "codeQuality": "fail",
+                    "mustEscalate": True,
+                    "recommendedLane": "strict",
+                    "recommendedTierUpgrade": {
+                        "needed": True,
+                        "from": "tier_mid",
+                        "to": "tier_top",
+                        "reason": "auth-sensitive path needs stricter review",
+                    },
+                    "scopeDrift": False,
+                    "unresolvedRisk": True,
+                    "sensitiveHit": {
+                        "touchesAuth": True,
+                        "touchesDbSchema": False,
+                        "touchesPublicApi": False,
+                        "touchesDestructiveAction": False,
+                    },
+                    "verifyStatus": "failed",
+                    "endGateCheck": {
+                        "quickReady": False,
+                        "standardReady": False,
+                        "guardedReady": False,
+                        "strictReady": False,
+                    },
+                    "findings": [
+                        {
+                            "severity": "high",
+                            "file": "src/auth.ts",
+                            "summary": "auth-sensitive change exceeds current lane",
+                        }
+                    ],
+                    "requiredActions": ["escalate to strict lane"],
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            output = self._run_node(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['chat.message'](
+                  {{ sessionID: 'leader-1', agent: 'reviewer', messageID: 'm2' }},
+                  {{ parts: [{{ text: 'review this task' }}] }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm3', partID: 'p3' }},
+                  {{ text: {reviewer_output} }}
+                );
+
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify(state.evidence.escalation));
+                """,
+                env=env,
+            )
+        escalation = json.loads(output)
+        self.assertEqual(1, len(escalation))
+        self.assertEqual("standard", escalation[0]["fromLane"])
+        self.assertEqual("strict", escalation[0]["toLane"])
+        self.assertIn("reviewer", escalation[0]["reason"])
+
 
 if __name__ == "__main__":
     unittest.main()

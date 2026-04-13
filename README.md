@@ -3,7 +3,7 @@
 [English](./README.md) | [简体中文](./docs/project/README.zh-CN.md)
 
 do-the-thing is a cross-platform agent workflow plugin.
-Install once, then only talk to one default strongest entry agent: `leader`.
+Install once, then start from one strongest entry agent: `leader`.
 The documented workflow routes triage, delegation, escalation, review, verification, and final closure through that single entry.
 
 Tell one agent the task, let the system handle the rest.
@@ -28,7 +28,7 @@ This is **do-the-thing**: a single-entry agent workflow plugin with automatic la
 - Claude Code: deferred
 - Codex: one-command install
 
-`agent router` is currently OpenCode-only. Codex uses the same built-in method skills but without native router integration. OpenCode also provides the runtime guard layer for workflow state, audit logging, profile-based enforcement modes, evidence staleness tracking, and close-time evidence gating. Claude Code and Cursor remain deferred.
+`agent router` is currently OpenCode-only. Codex uses the same built-in method skills but without native router integration. OpenCode also provides the runtime guard layer for workflow state, audit logging, profile-based enforcement modes, evidence staleness tracking, and close-time evidence gating. In OpenCode, minimal (`quick`) keeps audit/state tracking but does not enforce close-time evidence gating or completion rewriting, while standard and strict enforce close-time evidence gating and completion rewriting. Claude Code and Cursor remain deferred.
 
 It is **not**:
 - a prompt snippet collection
@@ -41,13 +41,21 @@ It is **not**:
 - entry-driven workflow state so different task entry shapes can follow different safe paths
 - layered evidence model for triage, review, verification, and manual checks
 - built-in method skills for planning, debugging, review, verification, and execution
-- OpenCode runtime guard for workflow state, audit logs, profile modes (minimal/standard/strict), evidence staleness, and close-time evidence gating
+- OpenCode runtime guard for workflow state, audit logs, and profile modes (minimal/standard/strict)
+- minimal (`quick`) keeps audit/state tracking but does not enforce close-time evidence gating or completion rewriting
+- standard and strict enforce close-time evidence gating and completion rewriting; strict also requires the full evidence set
 - pack-owned built-in skills use a `dtt-` prefix to avoid collisions with similarly named external Superpowers skills
 - optional model router for OpenCode environments
 
 Detailed workflow docs:
 - [`docs/project/WORKFLOW.md`](./docs/project/WORKFLOW.md)
 - [`docs/project/ROUTER.md`](./docs/project/ROUTER.md)
+
+## User Entry Flow
+- default workflow entry: start with `leader`
+- in hosts that expose agent switching, switch to `leader` once at the start of the session, then give the task directly
+- after that, do not manually pick analyzer/implementer/reviewer unless `leader` explicitly tells you to
+- for a fresh OpenCode install, the quick check is: `switch to leader and say ready`
 
 ## Installation
 
@@ -119,7 +127,7 @@ The session should route through `leader`, use the built-in method skills, and k
 ## Use
 
 After install, user workflow is intentionally simple:
-1. switch to `leader` agent, then ask task directly
+1. start with `leader` as the default strongest entry; if your host exposes agent switching, switch to `leader` first, then ask the task directly
 2. `leader` handles triage/routing/escalation within the documented workflow
 3. `leader` provides the final closure summary after review/end-gate checks
 4. use `/providers` whenever you want to update the plugin-scoped provider allowlist

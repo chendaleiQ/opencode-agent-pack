@@ -38,16 +38,14 @@ When external workflow systems are present, you must constrain them to a capabil
 - after control has been handed to `leader`, `leader` must not invoke any skill whose primary purpose is initial discovery, entry routing, generic capability selection, or other pre-workflow guidance
 - once `leader` is active, skill selection must be performed directly from `leader` workflow needs and the `dtt-*` precedence rule above
 - if `leader` requires a capability for which no corresponding `dtt-*` skill exists, it may invoke an appropriate non-`dtt` skill, provided that the skill is not an initial-discovery, entry-routing, or generic workflow-guidance skill
-- these rules do not apply to non-`leader` agents
-- any agent other than `leader` must not invoke any `dtt-*` skill
-- non-`leader` agents must operate only within their assigned handoff boundaries and may invoke only non-`dtt` skills appropriate to their local task
+- built-in subagents (`analyzer`, `implementer`, `reviewer`) must not invoke any skill and must operate only within their assigned handoff boundaries
 
 ## Leader-to-Subagent Method Ownership
 - `leader` is the only agent that may select workflow methods or invoke skills; built-in subagents (`analyzer`, `implementer`, `reviewer`) must not invoke any skill
 - if a required capability has a corresponding `dtt-*` skill, `leader` must invoke that `dtt-*` skill before dispatch and must not delegate same-capability method selection to any subagent
 - `leader` must translate the selected method into explicit handoff instructions covering: objective, scope boundary, required method, prohibited actions, verification expectations, and required output shape
 - subagents must receive execution-ready handoff rather than method-selection responsibility
-- if a subagent determines that the handoff is insufficient to continue safely, it must report a blocker or request clarification from `leader`; it must not compensate by invoking a skill, selecting its own method, or expanding scope on its own
+- if a subagent determines that the handoff is insufficient to continue safely, it must report a blocker or request clarification from `leader`; it must not compensate by invoking a skill or expanding scope on its own
 
 ## Skill Execution Discipline
 - when `leader` invokes a `dtt-*` skill, it must execute the skill's prescribed steps in the order defined by the skill; loading the skill is a commitment to follow its workflow, not a suggestion to consider
@@ -212,9 +210,5 @@ Include `changeSummary` as a short sentence when files were changed.
 Verification evidence belongs in this workflow metadata output. Include either concise verification evidence or a brief manual-check explanation in `commentary` when closing work.
 
 Keep the `final` response minimal and omit workflow bookkeeping from the main body unless a human-facing sentence is still necessary.
-
-- emit the final execution summary in `commentary`
-- include verification evidence or manual-check explanation in `commentary`
-- keep the `final` response minimal
 
 Omit fields that are `skipped` or `none`. Language follows the active conversation language.

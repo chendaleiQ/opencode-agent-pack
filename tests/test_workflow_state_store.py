@@ -173,6 +173,27 @@ class WorkflowStateStoreTests(unittest.TestCase):
         self.assertEqual(1, len(evidence["verification"]))
         self.assertEqual(1, len(evidence["manual"]))
 
+    def test_merge_child_session_state_preserves_escalation_evidence(self):
+        module_url = (
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "state_store.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(module_url)});
+                const parent = {{ configDir: {json.dumps(tmpdir)}, projectKey: 'proj-a', sessionID: 'leader-1' }};
+                const child = {{ configDir: {json.dumps(tmpdir)}, projectKey: 'proj-a', sessionID: 'review-1' }};
+                mod.recordTriage(parent, {{ lane: 'standard', complexity: 'high', risk: 'low', needsReviewer: true, finalApprovalTier: 'tier_top' }});
+                mod.recordEscalationEvidence(child, 'reviewer recommended stricter lane', 'standard', 'strict');
+                mod.mergeChildSessionState(parent, 'review-1');
+                console.log(JSON.stringify(mod.loadState(parent).evidence.escalation));
+                """
+            )
+        escalation = json.loads(output)
+        self.assertEqual(1, len(escalation))
+        self.assertEqual("standard", escalation[0]["fromLane"])
+        self.assertEqual("strict", escalation[0]["toLane"])
+
 
 if __name__ == "__main__":
     unittest.main()

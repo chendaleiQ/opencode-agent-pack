@@ -23,6 +23,7 @@ import {
   mergeChildSessionState,
   recordCompletionAttempt,
   recordEditedFile,
+  recordEscalationEvidence,
   recordLatestUserMessage,
   recordManualVerification,
   recordProtectedBlock,
@@ -88,6 +89,31 @@ function activeFeatures(runtime, sessionID) {
 
 function childSessionIDFromOutput(output) {
   return output?.metadata?.sessionID || output?.metadata?.sessionId || output?.sessionID || output?.sessionId || null;
+}
+
+const LANE_ORDER = ['quick', 'standard', 'guarded', 'strict'];
+
+function laneRank(lane) {
+  const index = LANE_ORDER.indexOf(lane);
+  return index >= 0 ? index : -1;
+}
+
+function maybeRecordReviewerEscalation(context, reviewer) {
+  const state = loadState(context);
+  const fromLane = state?.triage?.lane || null;
+  const toLane = reviewer?.recommendedLane || null;
+  const stricterLaneRecommended = fromLane && toLane && laneRank(toLane) > laneRank(fromLane);
+  const escalationRequested = Boolean(reviewer?.mustEscalate) || stricterLaneRecommended;
+  if (!escalationRequested) return;
+
+  const tierReason = reviewer?.recommendedTierUpgrade?.needed
+    ? reviewer.recommendedTierUpgrade.reason || 'tier upgrade recommended'
+    : null;
+  const reason = stricterLaneRecommended
+    ? `reviewer recommended escalation from ${fromLane} to ${toLane}`
+    : `reviewer requested escalation${tierReason ? `: ${tierReason}` : ''}`;
+
+  recordEscalationEvidence(context, reason, fromLane, toLane);
 }
 
 export function createRuntimeHooks(runtime) {
@@ -209,7 +235,10 @@ export function createRuntimeHooks(runtime) {
       if (triage) recordTriage(context, triage);
 
       const reviewer = parseReviewerFromText(output.text);
-      if (reviewer) recordReviewerResult(context, reviewer);
+      if (reviewer) {
+        recordReviewerResult(context, reviewer);
+        maybeRecordReviewerEscalation(context, reviewer);
+      }
 
       const manualVerification = parseManualVerificationFromText(output.text);
       if (manualVerification) recordManualVerification(context, manualVerification);
