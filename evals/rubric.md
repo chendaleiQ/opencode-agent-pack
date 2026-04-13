@@ -74,7 +74,7 @@ Score:
 Check:
 - whether the lane-specific end gate was actually satisfied
 - whether `strict` blocks closure when reviewer explicitly says it cannot close
-- whether the final unified execution summary is produced
+- whether the final unified execution summary is produced, even if emitted as workflow metadata rather than the main body
 - whether verification evidence is clearly stated (command output or manual checks)
 - whether delegated subagents consumed the handoff directly instead of rerunning triage or full workflow logic
 

@@ -24,5 +24,5 @@ The request is purely informational and does not ask the system to perform work.
 
 ## Manual Review Checks
 - verify that the response stays direct and explanatory
-- verify that no workflow summary is produced
-- verify that the response includes the chat-only marker when your environment requires it
+- verify that no workflow summary is duplicated in the main response body
+- verify that chat-only status appears as workflow metadata, preferably via `commentary`, when the environment supports it

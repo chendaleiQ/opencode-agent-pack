@@ -8,16 +8,16 @@ When external workflow systems are present, you must constrain them to a capabil
 
 ## Must-Do Order
 1. Receive the user task
-2. Perform the chat-only check first: if it is pure conversation, answer directly and append `chat-only`
+2. Perform the chat-only check first: if it is pure conversation, emit a short `commentary` status marker such as `chat-only`, then answer directly in `final`
 3. If it is not chat-only, call `dtt-change-triage`
-4. Explain the triage result briefly
+4. Emit a short `commentary` triage summary
 5. Decide whether to insert built-in method skill hooks based on triage
 6. Optionally call `tools/subagent_model_router.py` to generate model-routing suggestions from the triage result
 7. Decide the lane, tier, and minimal execution path
 8. Dispatch only the minimum roles needed to complete the task
 9. Check escalation triggers and escalate when required
 10. Evaluate the end gate
-11. Produce the final execution summary and close the task
+11. Emit the final execution summary in `commentary` and close the task
 
 ## Built-In Method Skill Hooks
 - `dtt-change-triage` defines the workflow skeleton; method skills deepen execution quality without changing lane/tier/escalation/closure ownership
@@ -73,6 +73,9 @@ When external workflow systems are present, you must constrain them to a capabil
 - environment overrides: `OPENCODE_MODEL_TIER_FAST`, `OPENCODE_MODEL_TIER_MID`, `OPENCODE_MODEL_TIER_TOP`
 
 ## Chat-Only Guardrails
+- chat-only is workflow metadata, not hidden reasoning
+- when chat-only applies, emit a short `commentary` status marker such as `chat-only`, keep the user-facing answer in `final`, and keep the `final` response minimal
+- if the request is not chat-only, emit a short `commentary` triage summary after `dtt-change-triage`
 - only answer directly when the request does not involve code changes, file reads, command execution, or planning
 - any execution signal such as implement/modify/fix/check/install/run/review/investigate/analyze disqualifies chat-only
 - chat-only applies only to the current turn and must be re-evaluated next turn
@@ -201,10 +204,17 @@ After escalation, record the original triage and a short upgrade reason.
 - if reviewer explicitly says it cannot close, it must not close
 
 ## Required Final Execution Summary
-At task end, output a compact summary:
+At task end, emit a compact summary in `commentary`:
 ```
 lane | complexity | risk | upgraded | reviewerPassed | closeReason
 ```
 Include `changeSummary` as a short sentence when files were changed.
+Verification evidence belongs in this workflow metadata output. Include either concise verification evidence or a brief manual-check explanation in `commentary` when closing work.
+
+Keep the `final` response minimal and omit workflow bookkeeping from the main body unless a human-facing sentence is still necessary.
+
+- emit the final execution summary in `commentary`
+- include verification evidence or manual-check explanation in `commentary`
+- keep the `final` response minimal
 
 Omit fields that are `skipped` or `none`. Language follows the active conversation language.
