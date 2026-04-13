@@ -37,6 +37,7 @@ import {
 } from './state_store.js';
 
 function isAllowedPreTriageTool(toolName, args) {
+  if (['glob', 'grep', 'read'].includes(toolName)) return true;
   if (toolName !== 'skill') return false;
   return ['using-superpowers', 'dtt-change-triage'].includes(args?.name);
 }
