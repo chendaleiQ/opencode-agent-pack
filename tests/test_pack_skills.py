@@ -43,6 +43,7 @@ class PackSkillsTests(unittest.TestCase):
             "before any completion claim -> `dtt-verification-before-completion`",
             content,
         )
+
     def test_lane_protocols_include_method_skill_ordering(self):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
@@ -115,6 +116,46 @@ class PackSkillsTests(unittest.TestCase):
         self.assertIn(
             "after implementation and verification pass, move into `dtt-finishing-a-development-branch`",
             content,
+        )
+
+    def test_leader_reports_workflow_state_as_commentary_metadata(self):
+        content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "emit a short `commentary` status marker such as `chat-only`",
+            content,
+        )
+        self.assertIn("emit a short `commentary` triage summary", content)
+        self.assertIn("emit the final execution summary in `commentary`", content)
+        self.assertIn(
+            "Include either concise verification evidence or a brief manual-check explanation in `commentary` when closing work.",
+            content,
+        )
+        self.assertIn(
+            "include verification evidence or manual-check explanation in `commentary`",
+            content,
+        )
+        self.assertIn("keep the `final` response minimal", content)
+
+    def test_evals_expect_workflow_metadata_in_commentary(self):
+        chat_only = (
+            self.repo_root / "evals" / "cases" / "chat-only-status-question.md"
+        ).read_text(encoding="utf-8")
+        quick_upgrade = (
+            self.repo_root / "evals" / "cases" / "quick-to-guarded-auth-escalation.md"
+        ).read_text(encoding="utf-8")
+        strict_case = (
+            self.repo_root / "evals" / "cases" / "strict-db-migration-destructive.md"
+        ).read_text(encoding="utf-8")
+        rubric = (self.repo_root / "evals" / "rubric.md").read_text(encoding="utf-8")
+
+        self.assertIn("workflow metadata", chat_only)
+        self.assertIn("commentary", chat_only)
+        self.assertIn("workflow metadata", quick_upgrade)
+        self.assertIn("workflow metadata", strict_case)
+        self.assertIn(
+            "final unified execution summary is produced, even if emitted as workflow metadata",
+            rubric,
         )
 
     def test_readme_documents_builtin_method_skills(self):

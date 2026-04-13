@@ -40,4 +40,4 @@ The plugin must react to new risk discovered during execution instead of freezin
 ## Manual Review Checks
 - verify that escalation is triggered promptly
 - verify that the escalation reason is recorded
-- verify that the final execution summary includes the upgrade
+- verify that the final workflow metadata includes the upgrade

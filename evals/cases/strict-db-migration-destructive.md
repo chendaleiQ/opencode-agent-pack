@@ -41,4 +41,4 @@ Database schema plus destructive action is one of the highest-risk combinations 
 ## Manual Review Checks
 - verify that both `touchesDbSchema` and `touchesDestructiveAction` are set
 - verify that strict review blocks closure when unresolved high risk remains
-- verify that the final summary includes verification evidence
+- verify that the final workflow metadata includes verification evidence
