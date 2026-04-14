@@ -144,6 +144,7 @@ function Install-DoTheThing {
       }
 
       $data['plugin'] = @($nextPlugins.ToArray())
+      $data['default_agent'] = 'leader'
       $json = $data | ConvertTo-Json -Depth 100
       Set-Content -LiteralPath $configPath -Value ($json + "`n") -Encoding UTF8
 

@@ -45,9 +45,9 @@ class PlatformInstallDocsTests(unittest.TestCase):
 
         self.assertIn("curl -fsSL", content)
         self.assertIn("install.sh | bash -s -- opencode", content)
-        self.assertIn("install.sh | bash -s -- codex", content)
         self.assertIn("Install-DoTheThing opencode", content)
-        self.assertIn("Install-DoTheThing codex", content)
+        self.assertIn("### Codex", content)
+        self.assertIn("coming soon", content)
 
     def test_platform_install_docs_use_installer_not_fetch_and_follow(self):
         docs = [
@@ -146,14 +146,10 @@ class PlatformInstallDocsTests(unittest.TestCase):
                 return remainder[:next_section]
             return remainder
 
-        self.assertIn(
-            "Platform installation is one-command first for supported targets.",
-            readme,
-        )
         self.assertIn("One-command native install.", readme_section("OpenCode"))
-        self.assertIn("One-command install.", readme_section("Codex"))
-        self.assertIn("Deferred.", readme_section("Cursor"))
-        self.assertIn("Deferred.", readme_section("Claude Code"))
+        self.assertIn("coming soon", readme_section("Codex"))
+        self.assertIn("coming soon", readme_section("Cursor"))
+        self.assertIn("coming soon", readme_section("Claude Code"))
         self.assertIn("Codex uses one-command install.", codex)
         self.assertIn(
             "That path is still under investigation and is not part of the supported one-command install targets in this release.",
@@ -165,21 +161,14 @@ class PlatformInstallDocsTests(unittest.TestCase):
             claude,
         )
 
-    def test_readme_describes_runtime_enforcement_by_profile(self):
+    def test_readme_describes_concise_install_and_usage_flow(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")
 
-        workflow_section = content.split("## Workflow at a Glance\n", 1)[1].split(
-            "\n## User Entry Flow",
-            1,
-        )[0]
-
+        self.assertIn("## How It Works", content)
+        self.assertIn("## Use", content)
         self.assertIn(
-            "- minimal (`quick`) keeps audit/state tracking but does not enforce close-time evidence gating or completion rewriting",
-            workflow_section,
-        )
-        self.assertIn(
-            "- standard and strict enforce close-time evidence gating and completion rewriting; strict also requires the full evidence set",
-            workflow_section,
+            "Use `/providers` if you need to adjust the plugin-scoped provider allowlist.",
+            content,
         )
 
     def test_installer_entrypoints_use_supported_target_names(self):
@@ -281,6 +270,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
             self.assertEqual(
                 config,
                 {
+                    "default_agent": "leader",
                     "plugin": [
                         "other-plugin@1.0.0",
                         "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.3.0",
@@ -344,11 +334,99 @@ class PlatformInstallDocsTests(unittest.TestCase):
             self.assertEqual(
                 config,
                 {
+                    "default_agent": "leader",
                     "plugin": [
                         "other-plugin@1.0.0",
                         "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#v1.3.0",
                     ],
                     "provider": "openai",
+                },
+            )
+
+    def test_shell_installer_writes_usable_temp_opencode_config(self):
+        script = self.repo_root / "install" / "install.sh"
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp = Path(tmpdir)
+            config_dir = temp / "opencode-config"
+            config_dir.mkdir(parents=True)
+            (config_dir / "opencode.json").write_text(
+                json.dumps(
+                    {
+                        "provider": "openai",
+                        "plugin": [
+                            "other-plugin@1.0.0",
+                            "do-the-thing@git+https://github.com/chendaleiQ/do-the-thing.git#old",
+                            "do-the-thing@file:///tmp/local",
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+            env["DTT_REPO_URL"] = str(self.repo_root)
+            env["DTT_INSTALL_ROOT"] = str(temp / "installed" / "do-the-thing")
+            env["OPENCODE_CONFIG_DIR"] = str(config_dir)
+
+            subprocess.run(
+                ["bash", str(script), "opencode"],
+                check=True,
+                cwd=self.repo_root,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+            config = json.loads(
+                (config_dir / "opencode.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                config,
+                {
+                    "provider": "openai",
+                    "default_agent": "leader",
+                    "plugin": [
+                        "other-plugin@1.0.0",
+                        self.default_opencode_plugin,
+                    ],
+                },
+            )
+
+            runtime_check = subprocess.run(
+                [
+                    "node",
+                    "--input-type=module",
+                    "-e",
+                    "\n".join(
+                        [
+                            f"const mod = await import({json.dumps(plugin_url)});",
+                            "const hooks = await mod.DoTheThingPlugin({",
+                            "  project: { id: 'proj-1' },",
+                            f"  directory: {json.dumps(str(self.repo_root))},",
+                            f"  worktree: {json.dumps(str(self.repo_root))},",
+                            "});",
+                            "const config = {};",
+                            "await hooks.config(config);",
+                            "console.log(JSON.stringify({ skillsPaths: config.skills.paths, hasBeforeHook: typeof hooks['tool.execute.before'] === 'function' }));",
+                        ]
+                    ),
+                ],
+                check=True,
+                cwd=self.repo_root,
+                env={**env, "OPENCODE_CONFIG_DIR": str(config_dir)},
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(
+                json.loads(runtime_check.stdout.strip()),
+                {
+                    "skillsPaths": [str(config_dir / "skills")],
+                    "hasBeforeHook": True,
                 },
             )
 
@@ -507,27 +585,27 @@ class PlatformInstallDocsTests(unittest.TestCase):
 
         for token in [
             "OpenCode",
-            "one-command native install",
+            "One-command native install",
             "Claude Code",
             "Codex",
-            "one-command install",
             "Cursor",
-            "deferred",
+            "coming soon",
             "repository `main` branch",
         ]:
             self.assertIn(token, readme)
-        self.assertIn("OpenCode：一条命令原生安装", zh)
-        self.assertIn("Claude Code：暂缓", zh)
-        self.assertIn("Codex：一条命令安装", zh)
-        self.assertIn("Cursor：暂缓", zh)
-        self.assertIn("仓库的 `main` 分支", zh)
+        self.assertIn("一条命令原生安装", zh)
+        self.assertIn("Claude Code：coming soon", zh)
+        self.assertIn("Codex：coming soon", zh)
+        self.assertIn("Cursor：coming soon", zh)
+        self.assertIn("仓库 `main` 分支", zh)
 
-    def test_readme_directory_tree_has_no_examples_or_pack_dir(self):
+    def test_readme_stays_concise_without_old_directory_tree_section(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")
 
         self.assertNotIn("examples/", content)
         self.assertNotIn("└─ pack/", content)
-        self.assertIn("└─ tools/", content)
+        self.assertNotIn("└─ tools/", content)
+        self.assertIn("## Project Docs", content)
 
 
 if __name__ == "__main__":
