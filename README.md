@@ -21,6 +21,12 @@ Install it once, start with `leader`, and let the system handle triage, delegati
 - Low-risk local work can be delegated to faster tiers
 - High-risk judgment, escalation, and final closure stay with higher tiers
 
+## User Entry Flow
+- default workflow entry: start with `leader`
+- in hosts that expose agent switching, switch to `leader` once at the start of the session, then give the task directly
+- after that, do not manually pick analyzer/implementer/reviewer unless `leader` explicitly tells you to
+- for a fresh OpenCode install, the quick check is: `switch to leader and say ready`
+
 ## Installation
 
 ### OpenCode
