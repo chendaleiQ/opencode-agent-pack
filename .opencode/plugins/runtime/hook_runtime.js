@@ -2,6 +2,7 @@ import {
   buildBlockedCompletionMessage,
   buildSystemGuard,
   classifyVerificationCommand,
+  collectDeletedFilePaths,
   collectFilePaths,
   detectClosureAttempt,
   evaluateCloseGate,
@@ -55,9 +56,13 @@ function isLeaderManagedSession(state) {
 function planningArtifactKindForPath(filePath) {
   if (!filePath) return null;
   const normalized = String(filePath).replaceAll('\\', '/');
-  if (normalized.includes('docs/dtt/specs/')) return 'spec';
-  if (normalized.includes('docs/dtt/plans/')) return 'plan';
+  if (/(^|\/)docs\/dtt\/specs\/[^/]+\.md$/i.test(normalized)) return 'spec';
+  if (/(^|\/)docs\/dtt\/plans\/[^/]+\.md$/i.test(normalized)) return 'plan';
   return null;
+}
+
+function isFileMutationTool(toolName) {
+  return ['write', 'edit', 'multiedit', 'apply_patch'].includes(toolName);
 }
 
 function isAllowedDuringPlanningGate(state, kind, name, args) {
@@ -70,11 +75,11 @@ function isAllowedDuringPlanningGate(state, kind, name, args) {
     if (blockedStage === 'plan') return ['dtt-writing-plans', 'writing-plans'].includes(skillName);
     return false;
   }
-  if (['write', 'edit', 'multiedit'].includes(name)) {
-    const planningKinds = collectFilePaths(args)
-      .map((filePath) => planningArtifactKindForPath(filePath))
-      .filter(Boolean);
-    return planningKinds.length > 0 && planningKinds.every((kindName) => kindName === blockedStage);
+  if (isFileMutationTool(name)) {
+    if (name === 'apply_patch' && collectDeletedFilePaths(args).length > 0) return false;
+    const filePaths = collectFilePaths(args);
+    if (filePaths.length === 0) return false;
+    return filePaths.every((filePath) => planningArtifactKindForPath(filePath) === blockedStage);
   }
   if (name !== 'task') return false;
   const description = `${args?.description || ''} ${args?.prompt || ''}`.toLowerCase();
@@ -224,7 +229,7 @@ export function createRuntimeHooks(runtime) {
         }
       }
 
-      if (features.protectedConfigBlock && ['write', 'edit', 'multiedit'].includes(input.tool)) {
+      if (features.protectedConfigBlock && isFileMutationTool(input.tool)) {
         for (const filePath of collectFilePaths(args)) {
           if (isProtectedConfigPath(filePath)) {
             recordProtectedBlock(context, filePath);
@@ -241,7 +246,7 @@ export function createRuntimeHooks(runtime) {
       const context = buildContext(runtime, input.sessionID);
       recordToolCall(context, { phase: 'after', tool: input.tool, args: input.args, title: output.title });
 
-      if (['write', 'edit', 'multiedit'].includes(input.tool)) {
+      if (isFileMutationTool(input.tool)) {
         for (const filePath of collectFilePaths(input.args)) {
           const planningKind = planningArtifactKindForPath(filePath);
           if (planningKind) {
