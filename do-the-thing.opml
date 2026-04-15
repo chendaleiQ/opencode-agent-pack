@@ -147,9 +147,9 @@
         <outline text="commands/ — /providers 斜杠命令"/>
         <outline text="tools/ — 3 个 Python CLI 工具"/>
         <outline text="install/ — Bash + PowerShell 安装脚本"/>
-        <outline text="docs/project/ — 工作流/路由/发布/维护文档 + 中文 README"/>
-        <outline text="evals/ — 14 个手动评测用例 + 评分标准"/>
-        <outline text="tests/ — 50 个 pytest 测试用例"/>
+        <outline text="docs/ — 工作流/架构/发布/维护文档 + 中文 README"/>
+        <outline text="evals/ — 手动评测用例 + 评分标准"/>
+        <outline text="tests/ — pytest 测试用例"/>
         <outline text=".opencode/ — OpenCode 插件 + 依赖"/>
         <outline text=".codex/ — Codex 安装文档"/>
         <outline text=".claude-plugin/ — Claude 插件清单"/>
@@ -166,7 +166,7 @@
           <outline text="E - 终止门控（End-gate）"/>
           <outline text="首要指标：低高风险遗漏率"/>
         </outline>
-        <outline text="14 个评测用例">
+        <outline text="评测用例集合">
           <outline text="Quick：文档修正 / 调查 / 审查"/>
           <outline text="升级：quick→guarded / 验证失败必须升级"/>
           <outline text="Standard：功能计划+批处理 / 并行独立切片"/>

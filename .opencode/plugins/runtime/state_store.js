@@ -23,6 +23,46 @@ function evidenceEntry(kind, payload = {}) {
   };
 }
 
+function createPlanningGate(enabled = false) {
+  return {
+    enabled,
+    blockedStage: enabled ? 'spec' : null,
+    specStatus: enabled ? 'required' : 'not_required',
+    planStatus: enabled ? 'required' : 'not_required',
+    specArtifacts: [],
+    planArtifacts: [],
+    approvals: [],
+  };
+}
+
+function deriveBlockedStage(planningGate) {
+  if (!planningGate?.enabled) return null;
+  if (planningGate.specStatus !== 'approved') return 'spec';
+  if (planningGate.planStatus !== 'approved') return 'plan';
+  return null;
+}
+
+function normalizePlanningGate(planningGate, needsPlan = false) {
+  const base = createPlanningGate(Boolean(needsPlan));
+  const next = {
+    ...base,
+    ...(planningGate || {}),
+    enabled: Boolean(needsPlan || planningGate?.enabled),
+    specArtifacts: Array.isArray(planningGate?.specArtifacts) ? planningGate.specArtifacts : [],
+    planArtifacts: Array.isArray(planningGate?.planArtifacts) ? planningGate.planArtifacts : [],
+    approvals: Array.isArray(planningGate?.approvals) ? planningGate.approvals : [],
+  };
+
+  if (!next.enabled) {
+    return createPlanningGate(false);
+  }
+
+  if (!next.specStatus || next.specStatus === 'not_required') next.specStatus = 'required';
+  if (!next.planStatus || next.planStatus === 'not_required') next.planStatus = 'required';
+  next.blockedStage = deriveBlockedStage(next);
+  return next;
+}
+
 export function hasValidTriage(state) {
   return Boolean(
     state?.triage?.lane
@@ -88,6 +128,7 @@ export function createInitialState({ sessionID, projectKey }) {
     latestUserMessage: null,
     lastEditAt: null,
     triage: null,
+    planningGate: createPlanningGate(false),
     evidence: {
       triage: [],
       review: [],
@@ -144,7 +185,11 @@ function dedupeObjects(items) {
 
 export function loadState({ configDir, projectKey, sessionID }) {
   const state = readJson(sessionStatePath(configDir, projectKey, sessionID));
-  return state || createInitialState({ sessionID, projectKey });
+  if (!state) return createInitialState({ sessionID, projectKey });
+  return {
+    ...state,
+    planningGate: normalizePlanningGate(state.planningGate, state.triage?.needsPlan),
+  };
 }
 
 export function saveState({ configDir, projectKey, sessionID }, state) {
@@ -212,6 +257,7 @@ export function recordLatestUserMessage(context, message) {
 export function recordTriage(context, triage) {
   return updateState(context, (state) => {
     state.triage = triage;
+    state.planningGate = normalizePlanningGate(state.planningGate, triage?.needsPlan);
     state.profile = profileFromLane(triage?.lane);
     state.evidence.triage = [
       ...state.evidence.triage,
@@ -229,6 +275,53 @@ export function recordTriage(context, triage) {
     if (!triage?.needsReviewer) {
       state.reviewer.status = 'not_required';
     }
+    return state;
+  });
+}
+
+export function recordPlanningArtifact(context, artifactType, summary) {
+  return updateState(context, (state) => {
+    state.planningGate = normalizePlanningGate(state.planningGate, state.triage?.needsPlan);
+    if (!state.planningGate.enabled) return state;
+
+    const entry = {
+      at: now(),
+      kind: artifactType,
+      summary,
+    };
+
+    if (artifactType === 'spec') {
+      state.planningGate.specArtifacts = [...state.planningGate.specArtifacts, entry].slice(-10);
+      if (state.planningGate.specStatus !== 'approved') state.planningGate.specStatus = 'drafted';
+    }
+
+    if (artifactType === 'plan') {
+      state.planningGate.planArtifacts = [...state.planningGate.planArtifacts, entry].slice(-10);
+      if (state.planningGate.planStatus !== 'approved') state.planningGate.planStatus = 'drafted';
+    }
+
+    state.planningGate.blockedStage = deriveBlockedStage(state.planningGate);
+    return state;
+  });
+}
+
+export function recordPlanningApproval(context, artifactType, note) {
+  return updateState(context, (state) => {
+    state.planningGate = normalizePlanningGate(state.planningGate, state.triage?.needsPlan);
+    if (!state.planningGate.enabled) return state;
+
+    const hasArtifact = artifactType === 'spec'
+      ? state.planningGate.specArtifacts.length > 0
+      : state.planningGate.planArtifacts.length > 0;
+    if (!hasArtifact) return state;
+
+    if (artifactType === 'spec') state.planningGate.specStatus = 'approved';
+    if (artifactType === 'plan') state.planningGate.planStatus = 'approved';
+    state.planningGate.approvals = [
+      ...state.planningGate.approvals,
+      { at: now(), kind: artifactType, note },
+    ].slice(-10);
+    state.planningGate.blockedStage = deriveBlockedStage(state.planningGate);
     return state;
   });
 }
@@ -280,6 +373,36 @@ export function mergeChildSessionState(context, childSessionID) {
     if (!state.triage && childState.triage) {
       state.triage = childState.triage;
       state.profile = childState.profile || state.profile;
+    }
+
+    state.planningGate = normalizePlanningGate(state.planningGate, state.triage?.needsPlan);
+    const childPlanningGate = normalizePlanningGate(childState.planningGate, childState.triage?.needsPlan);
+    if (childPlanningGate.enabled) {
+      state.planningGate.enabled = true;
+      state.planningGate.specStatus = childPlanningGate.specStatus === 'approved'
+        ? 'approved'
+        : state.planningGate.specStatus;
+      state.planningGate.planStatus = childPlanningGate.planStatus === 'approved'
+        ? 'approved'
+        : (childPlanningGate.planArtifacts.length > 0 && state.planningGate.planStatus !== 'approved'
+            ? 'drafted'
+            : state.planningGate.planStatus);
+      if (childPlanningGate.specArtifacts.length > 0 && state.planningGate.specStatus !== 'approved') {
+        state.planningGate.specStatus = 'drafted';
+      }
+      state.planningGate.specArtifacts = dedupeObjects([
+        ...state.planningGate.specArtifacts,
+        ...childPlanningGate.specArtifacts,
+      ]).slice(-20);
+      state.planningGate.planArtifacts = dedupeObjects([
+        ...state.planningGate.planArtifacts,
+        ...childPlanningGate.planArtifacts,
+      ]).slice(-20);
+      state.planningGate.approvals = dedupeObjects([
+        ...state.planningGate.approvals,
+        ...childPlanningGate.approvals,
+      ]).slice(-20);
+      state.planningGate.blockedStage = deriveBlockedStage(state.planningGate);
     }
 
     const childReviewerUpdated = childState.reviewer?.updatedAt || null;

@@ -225,6 +225,6 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add agents/leader.md evals/cases/chat-only-status-question.md evals/cases/quick-to-guarded-auth-escalation.md evals/cases/strict-db-migration-destructive.md evals/rubric.md tests/test_pack_skills.py docs/project/specs/2026-04-13-meta-status-rendering-design.md docs/project/plans/2026-04-13-meta-status-rendering-implementation.md
+git add agents/leader.md evals/cases/chat-only-status-question.md evals/cases/quick-to-guarded-auth-escalation.md evals/cases/strict-db-migration-destructive.md evals/rubric.md tests/test_pack_skills.py docs/dtt/specs/2026-04-13-meta-status-rendering-design.md docs/dtt/plans/2026-04-13-meta-status-rendering-implementation.md
 git commit -m "docs: render workflow status as metadata"
 ```

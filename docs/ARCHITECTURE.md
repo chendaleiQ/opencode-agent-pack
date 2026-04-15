@@ -10,6 +10,7 @@ V2 is **not** a multi-entry ECC-style orchestration system. It keeps do-the-thin
 - single workflow owner
 - explicit lane+tier routing
 - bounded subagent delegation
+- hard planning gate for `needsPlan=true`
 - hard close authority at `tier_top`
 
 V2 adds a stronger execution layer around that model.
@@ -66,10 +67,12 @@ Responsibilities:
 
 - tool blocking
 - protected-config blocking
+- planning-time blocking for unapproved spec/plan work
 - edited-file accumulation
 - evidence capture
 - evidence staleness tracking
 - audit logging
+- planning-gate tracking
 - close-time gating
 - session persistence and recovery
 - stop/pre-compact lifecycle handling
@@ -109,6 +112,7 @@ They consume leader handoff and must not take workflow ownership.
 User
   -> leader
   -> workflow state machine
+  -> planning gate (when `needsPlan=true`)
   -> hook enforcement
   -> bounded subagent execution
   -> verification gate
@@ -117,13 +121,14 @@ User
 
 ## Core Contracts
 
-V2 depends on five contracts:
+V2 depends on six contracts:
 
 1. workflow state schema
 2. hook lifecycle contract
 3. evidence schema
 4. audit schema
-5. close gate contract
+5. planning gate contract
+6. close gate contract
 
 ## Hook vs Skill Boundary
 
@@ -134,6 +139,7 @@ V2 depends on five contracts:
 - state updates
 - evidence recording
 - audit writes
+- planning gates
 - close gates
 
 ### Skills own
@@ -150,10 +156,11 @@ OpenCode V2 should only be considered complete when:
 
 1. all tasks land in explicit workflow phases
 2. all important lifecycle points are hook-backed
-3. close attempts require fresh evidence
-4. workflow state persists and can recover forward safely
-5. audit logs provide both event history and task summaries
-6. leader remains the only closure authority
+3. `needsPlan=true` work cannot bypass spec approval or plan approval
+4. close attempts require fresh evidence
+5. workflow state persists and can recover forward safely
+6. audit logs provide both event history and task summaries
+7. leader remains the only closure authority
 
 ## Relationship to V1
 
