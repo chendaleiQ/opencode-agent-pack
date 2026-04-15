@@ -43,6 +43,25 @@ export function parseReviewerFromText(text) {
   return parsed;
 }
 
+export function parsePlanningArtifactFromText(text) {
+  const parsed = tryParseObject(text);
+  if (!parsed) return null;
+  if (!['spec', 'plan'].includes(parsed.planningArtifact)) return null;
+  return {
+    kind: parsed.planningArtifact,
+    summary: parsed.summary || parsed.description || '',
+  };
+}
+
+export function isPlanningApprovalMessage(text) {
+  if (!text) return false;
+  const normalized = String(text).trim();
+  if (!/(批准|通过|同意|approve|approved)/i.test(normalized)) return false;
+  if (/(如果|要是|若|如|等|等到|完成后|之后再|以后再|once\b|after\b|when\b|until\b|if\b|then\b)/i.test(normalized)) return false;
+  if (/(不批准|不能批准|未批准|暂不批准|还不能批准|不同意|不通过|未通过|暂不通过|还不能通过|not approved|not approve|cannot approve|won't approve|would approve if)/i.test(normalized)) return false;
+  return true;
+}
+
 export function isProtectedConfigPath(filePath) {
   if (!filePath) return false;
   return PROTECTED_CONFIG_PATTERNS.some((pattern) => pattern.test(filePath));
@@ -120,6 +139,9 @@ export function evaluateCloseGate(state, options = {}) {
   const missing = [];
   if (state?.phase !== 'closable') missing.push('state not closable');
   if (!state?.triage) missing.push('missing triage');
+  if (state?.planningGate?.enabled && state?.planningGate?.blockedStage) {
+    missing.push(`planning gate blocked at ${state.planningGate.blockedStage}`);
+  }
   missing.push(...resolveMissingEvidence(state, options));
   if ((state?.editedFiles || []).length > 0) {
     const verificationStatus = state?.verification?.status;
@@ -145,6 +167,7 @@ export function evaluateCloseGate(state, options = {}) {
 export function buildSystemGuard(state) {
   const gate = evaluateCloseGate(state);
   const triage = state?.triage;
+  const planningGate = state?.planningGate;
   const verificationStatus = state?.verification?.status || 'missing';
   const phase = state?.phase || 'unknown';
   const entryType = state?.entryType || 'general';
@@ -157,6 +180,13 @@ export function buildSystemGuard(state) {
     lines.push(`- Active lane: ${triage.lane}; complexity=${triage.complexity}; risk=${triage.risk}.`);
   } else {
     lines.push('- No recorded triage yet. Do not act as if workflow routing is complete.');
+  }
+  if (planningGate?.enabled) {
+    if (planningGate.blockedStage) {
+      lines.push(`- Planning gate active: ${planningGate.blockedStage} stage is still blocked (spec=${planningGate.specStatus}, plan=${planningGate.planStatus}).`);
+    } else {
+      lines.push(`- Planning gate satisfied (spec=${planningGate.specStatus}, plan=${planningGate.planStatus}).`);
+    }
   }
   lines.push(`- Entry type: ${entryType}; phase: ${phase}.`);
   lines.push(`- Verification status: ${verificationStatus}.`);

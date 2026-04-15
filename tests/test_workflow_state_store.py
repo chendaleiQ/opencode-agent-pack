@@ -20,6 +20,14 @@ class WorkflowStateStoreTests(unittest.TestCase):
         )
         return result.stdout.strip()
 
+    def _run_node_result(self, source: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["node", "--input-type=module", "-e", source],
+            cwd=self.repo_root,
+            capture_output=True,
+            text=True,
+        )
+
     def test_state_store_persists_triage_and_unique_edited_files(self):
         module_url = (
             self.repo_root / ".opencode" / "plugins" / "runtime" / "state_store.js"
@@ -172,6 +180,88 @@ class WorkflowStateStoreTests(unittest.TestCase):
         self.assertEqual(1, len(evidence["review"]))
         self.assertEqual(1, len(evidence["verification"]))
         self.assertEqual(1, len(evidence["manual"]))
+
+    def test_initial_state_includes_planning_gate_fields(self):
+        module_url = (
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "state_store.js"
+        ).as_uri()
+        result = self._run_node_result(
+            f"""
+            const mod = await import({json.dumps(module_url)});
+            const state = mod.createInitialState({{ sessionID: 'sess-1', projectKey: 'proj-a' }});
+            console.log(JSON.stringify(state));
+            """
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        state = json.loads(result.stdout.strip())
+        self.assertIn("planningGate", state)
+        self.assertEqual(
+            {
+                "enabled": False,
+                "blockedStage": None,
+                "specStatus": "not_required",
+                "planStatus": "not_required",
+            },
+            {
+                "enabled": state["planningGate"]["enabled"],
+                "blockedStage": state["planningGate"]["blockedStage"],
+                "specStatus": state["planningGate"]["specStatus"],
+                "planStatus": state["planningGate"]["planStatus"],
+            },
+        )
+
+    def test_needs_plan_triage_enables_planning_gate_at_spec_stage(self):
+        module_url = (
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "state_store.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(module_url)});
+                const context = {{ configDir: {json.dumps(tmpdir)}, projectKey: 'proj-a', sessionID: 'sess-1' }};
+                mod.recordTriage(context, {{ lane: 'standard', complexity: 'high', risk: 'medium', needsPlan: true, needsReviewer: true, finalApprovalTier: 'tier_top' }});
+                console.log(JSON.stringify(mod.loadState(context)));
+                """
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        state = json.loads(result.stdout.strip())
+        self.assertTrue(state["triage"]["needsPlan"])
+        self.assertIn("planningGate", state)
+        self.assertEqual(True, state["planningGate"]["enabled"])
+        self.assertEqual("spec", state["planningGate"]["blockedStage"])
+        self.assertEqual("required", state["planningGate"]["specStatus"])
+        self.assertEqual("required", state["planningGate"]["planStatus"])
+
+    def test_planning_artifacts_and_approvals_are_separate_from_implementation_progress(
+        self,
+    ):
+        module_url = (
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "state_store.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(module_url)});
+                const context = {{ configDir: {json.dumps(tmpdir)}, projectKey: 'proj-a', sessionID: 'sess-1' }};
+                mod.recordTriage(context, {{ lane: 'standard', complexity: 'high', risk: 'medium', needsPlan: true, needsReviewer: false, finalApprovalTier: 'tier_top' }});
+                mod.recordPlanningArtifact(context, 'spec', 'Need a leader-approved spec before implementation.');
+                mod.recordPlanningApproval(context, 'spec', '这个方案我批准，继续写计划');
+                mod.recordPlanningArtifact(context, 'plan', 'Implementation plan broken into approved steps.');
+                const state = mod.loadState(context);
+                console.log(JSON.stringify(state));
+                """
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        state = json.loads(result.stdout.strip())
+        self.assertIn("planningGate", state)
+        self.assertEqual([], state["editedFiles"])
+        self.assertEqual([], state["evidence"]["verification"])
+        self.assertEqual([], state["evidence"]["review"])
+        self.assertEqual(1, len(state["planningGate"]["specArtifacts"]))
+        self.assertEqual(1, len(state["planningGate"]["planArtifacts"]))
+        self.assertEqual("approved", state["planningGate"]["specStatus"])
+        self.assertEqual("drafted", state["planningGate"]["planStatus"])
+        self.assertEqual("plan", state["planningGate"]["blockedStage"])
 
     def test_merge_child_session_state_preserves_escalation_evidence(self):
         module_url = (

@@ -125,6 +125,48 @@ class PackSkillsTests(unittest.TestCase):
             content,
         )
 
+    def test_needs_plan_gate_requires_spec_then_plan_approvals(self):
+        leader = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
+        workflow = (self.repo_root / "docs" / "WORKFLOW.md").read_text(encoding="utf-8")
+
+        for content in [leader, workflow]:
+            for token in [
+                "needsPlan=true requires spec before plan",
+                "docs/dtt/specs/",
+                "shown in chat",
+                "spec approval is required before plan",
+                "docs/dtt/plans/",
+                "plan approval is required before todo and before analyze/execute/review",
+                "follow current conversation language",
+            ]:
+                self.assertIn(token, content)
+
+    def test_plan_related_skills_define_spec_and_plan_contract(self):
+        brainstorming = (
+            self.repo_root / "skills" / "dtt-brainstorming" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        writing_plans = (
+            self.repo_root / "skills" / "dtt-writing-plans" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+
+        for token in [
+            "write the spec to `docs/dtt/specs/`",
+            "show the spec in chat",
+            "spec approval before planning",
+            "follow the current conversation language",
+        ]:
+            self.assertIn(token, brainstorming)
+        self.assertNotIn("short design summary", brainstorming)
+
+        for token in [
+            "approved spec",
+            "write the plan to `docs/dtt/plans/`",
+            "show the plan in chat",
+            "plan approval before todo or analyze/execute/review dispatch",
+            "follow the current conversation language",
+        ]:
+            self.assertIn(token, writing_plans)
+
     def test_leader_reports_workflow_state_as_commentary_metadata(self):
         content = (self.repo_root / "agents" / "leader.md").read_text(encoding="utf-8")
 
@@ -160,13 +202,11 @@ class PackSkillsTests(unittest.TestCase):
 
     def test_readme_documents_builtin_method_skills(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")
-        workflow = (self.repo_root / "docs" / "project" / "WORKFLOW.md").read_text(
-            encoding="utf-8"
-        )
+        workflow = (self.repo_root / "docs" / "WORKFLOW.md").read_text(encoding="utf-8")
 
         self.assertIn("## Project Docs", content)
-        self.assertIn("docs/project/WORKFLOW.md", content)
-        self.assertIn("docs/project/ROUTER.md", content)
+        self.assertIn("docs/WORKFLOW.md", content)
+        self.assertIn("Optional Tool: Subagent Model Router", workflow)
         self.assertIn(
             "`dtt-change-triage` still decides the workflow skeleton", workflow
         )
@@ -181,19 +221,17 @@ class PackSkillsTests(unittest.TestCase):
 
     def test_docs_deemphasize_external_superpowers(self):
         english = (self.repo_root / "README.md").read_text(encoding="utf-8")
-        workflow = (self.repo_root / "docs" / "project" / "WORKFLOW.md").read_text(
-            encoding="utf-8"
-        )
-        chinese = (self.repo_root / "docs" / "project" / "README.zh-CN.md").read_text(
+        workflow = (self.repo_root / "docs" / "WORKFLOW.md").read_text(encoding="utf-8")
+        chinese = (self.repo_root / "docs" / "README.zh-CN.md").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn("docs/project/WORKFLOW.md", english)
+        self.assertIn("docs/WORKFLOW.md", english)
         self.assertIn("External workflow systems are not needed", workflow)
         self.assertIn("README.zh-CN", chinese)
 
-    def test_docs_use_pack_methods_path_instead_of_superpowers(self):
-        self.assertTrue((self.repo_root / "docs" / "pack-methods").exists())
+    def test_docs_remove_legacy_pack_methods_path(self):
+        self.assertFalse((self.repo_root / "docs" / "pack-methods").exists())
         self.assertFalse((self.repo_root / "docs" / "superpowers").exists())
 
 

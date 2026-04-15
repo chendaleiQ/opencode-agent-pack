@@ -7,16 +7,14 @@ class ReleaseProcessDocsTests(unittest.TestCase):
         self.repo_root = Path(__file__).resolve().parents[1]
 
     def test_release_policy_requires_protected_main_and_releasable_merges(self):
-        content = (self.repo_root / "docs" / "project" / "RELEASE.md").read_text(
-            encoding="utf-8"
-        )
+        content = (self.repo_root / "docs" / "RELEASE.md").read_text(encoding="utf-8")
 
         self.assertIn("main must stay releasable", content)
         self.assertIn("protect the `main` branch", content)
         self.assertIn("only merge pull requests that are ready to release", content)
 
     def test_maintaining_guide_requires_pr_first_development(self):
-        content = (self.repo_root / "docs" / "project" / "MAINTAINING.md").read_text(
+        content = (self.repo_root / "docs" / "MAINTAINING.md").read_text(
             encoding="utf-8"
         )
 

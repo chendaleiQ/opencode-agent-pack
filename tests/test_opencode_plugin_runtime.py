@@ -21,6 +21,17 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         )
         return result.stdout.strip()
 
+    def _run_node_result(
+        self, source: str, env: dict | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["node", "--input-type=module", "-e", source],
+            cwd=self.repo_root,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
     def test_runtime_files_exist(self):
         expected = [
             self.repo_root / ".opencode" / "plugins" / "runtime" / "paths.js",
@@ -396,6 +407,576 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual("allowed", output)
+
+    def test_runtime_system_guard_reports_planning_gate_stage(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                const output = {{ system: [] }};
+                await hooks['experimental.chat.system.transform'](
+                  {{ sessionID: 'leader-1' }},
+                  output
+                );
+                console.log(JSON.stringify(output.system));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        output = "\n".join(json.loads(result.stdout.strip()))
+        self.assertIn("planning gate", output.lower())
+        self.assertIn("spec", output.lower())
+
+    def test_runtime_blocks_implementation_tools_until_plan_is_approved(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'edit', sessionID: 'leader-1', callID: 'call-edit' }},
+                    {{ args: {{ filePath: 'src/app.ts' }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("planning gate", result.stdout)
+        self.assertIn("spec", result.stdout.lower())
+
+    def test_runtime_chinese_approval_message_advances_planning_gate_state(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm2', partID: 'p2' }},
+                  {{ text: JSON.stringify({{ planningArtifact: 'spec', summary: 'spec drafted' }}) }}
+                );
+                await hooks['chat.message'](
+                  {{ sessionID: 'leader-1', agent: 'leader', messageID: 'm3' }},
+                  {{ parts: [{{ text: '这个方案我批准，继续写计划。' }}] }}
+                );
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify(state.planningGate));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotEqual("undefined", result.stdout.strip())
+        planning_gate = json.loads(result.stdout.strip())
+        self.assertEqual("approved", planning_gate["specStatus"])
+        self.assertEqual("plan", planning_gate["blockedStage"])
+
+    def test_runtime_allows_planning_doc_write_before_plan_approval(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'write', sessionID: 'leader-1', callID: 'call-write' }},
+                    {{ args: {{ filePath: 'docs/dtt/specs/example-spec.md' }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("allowed", result.stdout)
+
+    def test_runtime_blocks_plan_generation_skill_while_spec_stage_is_blocked(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'skill', sessionID: 'leader-1', callID: 'call-skill' }},
+                    {{ args: {{ name: 'dtt-writing-plans' }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("planning gate", result.stdout.lower())
+        self.assertIn("spec", result.stdout.lower())
+
+    def test_runtime_blocks_plan_generation_task_while_spec_stage_is_blocked(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'task', sessionID: 'leader-1', callID: 'call-task' }},
+                    {{ args: {{ subagent_type: 'plan', description: 'Generate implementation plan' }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("planning gate", result.stdout.lower())
+        self.assertIn("spec", result.stdout.lower())
+
+    def test_runtime_planning_doc_write_does_not_count_as_implementation_edit(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['tool.execute.after'](
+                  {{
+                    tool: 'write',
+                    sessionID: 'leader-1',
+                    callID: 'call-write',
+                    args: {{ filePath: 'docs/dtt/specs/example-spec.md' }},
+                  }},
+                  {{ title: 'write spec', output: '', metadata: {{}} }}
+                );
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify({{
+                  editedFiles: state.editedFiles,
+                  blockedStage: state.planningGate.blockedStage,
+                  specStatus: state.planningGate.specStatus,
+                  specArtifacts: state.planningGate.specArtifacts,
+                }}));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        state = json.loads(result.stdout.strip())
+        self.assertEqual([], state["editedFiles"])
+        self.assertEqual("spec", state["blockedStage"])
+        self.assertEqual("drafted", state["specStatus"])
+        self.assertEqual(1, len(state["specArtifacts"]))
+
+    def test_runtime_negative_chinese_approval_message_does_not_advance_planning_gate_state(
+        self,
+    ):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm2', partID: 'p2' }},
+                  {{ text: JSON.stringify({{ planningArtifact: 'spec', summary: 'spec drafted' }}) }}
+                );
+                await hooks['chat.message'](
+                  {{ sessionID: 'leader-1', agent: 'leader', messageID: 'm3' }},
+                  {{ parts: [{{ text: '这个方案如果评审通过我再批准，现在还不能通过。' }}] }}
+                );
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify(state.planningGate));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        planning_gate = json.loads(result.stdout.strip())
+        self.assertEqual("drafted", planning_gate["specStatus"])
+        self.assertEqual("spec", planning_gate["blockedStage"])
+
+    def test_runtime_english_conditional_approval_message_does_not_advance_planning_gate_state(
+        self,
+    ):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm2', partID: 'p2' }},
+                  {{ text: JSON.stringify({{ planningArtifact: 'spec', summary: 'spec drafted' }}) }}
+                );
+                await hooks['chat.message'](
+                  {{ sessionID: 'leader-1', agent: 'leader', messageID: 'm3' }},
+                  {{ parts: [{{ text: 'Approve once the tests pass.' }}] }}
+                );
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify(state.planningGate));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        planning_gate = json.loads(result.stdout.strip())
+        self.assertEqual("drafted", planning_gate["specStatus"])
+        self.assertEqual("spec", planning_gate["blockedStage"])
+
+    def test_runtime_blocks_unrelated_skill_during_spec_stage(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'skill', sessionID: 'leader-1', callID: 'call-skill' }},
+                    {{ args: {{ name: 'dtt-systematic-debugging' }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("planning gate", result.stdout)
+        self.assertIn("spec", result.stdout.lower())
+
+    def test_runtime_blocks_unrelated_skill_during_plan_stage(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm2', partID: 'p2' }},
+                  {{ text: JSON.stringify({{ planningArtifact: 'spec', summary: 'spec drafted' }}) }}
+                );
+                await hooks['chat.message'](
+                  {{ sessionID: 'leader-1', agent: 'leader', messageID: 'm3' }},
+                  {{ parts: [{{ text: '这个方案我批准，继续写计划。' }}] }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'skill', sessionID: 'leader-1', callID: 'call-skill' }},
+                    {{ args: {{ name: 'dtt-systematic-debugging' }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("planning gate", result.stdout)
+        self.assertIn("plan", result.stdout.lower())
 
     def test_runtime_rewrites_blocked_completion_attempt(self):
         plugin_url = (
