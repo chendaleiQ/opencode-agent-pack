@@ -579,9 +579,7 @@ class PlatformInstallDocsTests(unittest.TestCase):
 
     def test_readmes_reflect_one_command_support_matrix(self):
         readme = (self.repo_root / "README.md").read_text(encoding="utf-8")
-        zh = (self.repo_root / "docs" / "project" / "README.zh-CN.md").read_text(
-            encoding="utf-8"
-        )
+        zh = (self.repo_root / "docs" / "README.zh-CN.md").read_text(encoding="utf-8")
 
         for token in [
             "OpenCode",

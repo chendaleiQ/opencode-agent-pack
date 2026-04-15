@@ -1,6 +1,6 @@
 # do-the-thing
 
-[English](./README.md) | [简体中文](./docs/project/README.zh-CN.md)
+[English](./README.md) | [简体中文](./docs/README.zh-CN.md)
 
 do-the-thing is a single-entry agent workflow plugin.
 Install it once, start with `leader`, and let the system handle triage, delegation, review, verification, and closure.
@@ -20,6 +20,8 @@ Install it once, start with `leader`, and let the system handle triage, delegati
 - Default entry: `leader`
 - Low-risk local work can be delegated to faster tiers
 - High-risk judgment, escalation, and final closure stay with higher tiers
+- When `needsPlan=true`, work must stop for spec approval, then plan approval, before execution starts
+- Planned artifacts live under `docs/dtt/specs/` and `docs/dtt/plans/`
 
 ## User Entry Flow
 - default workflow entry: start with `leader`
@@ -70,14 +72,15 @@ Restart OpenCode, start a new session, then run: `switch to leader and say ready
 2. Describe the task directly
 3. Let the workflow handle routing, escalation, and closure
 
+For planned work, `leader` keeps the spec/plan steps human-readable in the current conversation language while storing the artifacts under `docs/dtt/`.
+
 Use `/providers` if you need to adjust the plugin-scoped provider allowlist.
 
 ## Project Docs
-- Workflow: [`docs/project/WORKFLOW.md`](./docs/project/WORKFLOW.md)
-- Router: [`docs/project/ROUTER.md`](./docs/project/ROUTER.md)
-- Architecture: [`docs/project/V2-ARCHITECTURE.md`](./docs/project/V2-ARCHITECTURE.md)
-- Release: [`docs/project/RELEASE.md`](./docs/project/RELEASE.md)
-- Maintenance: [`docs/project/MAINTAINING.md`](./docs/project/MAINTAINING.md)
+- Workflow: [`docs/WORKFLOW.md`](./docs/WORKFLOW.md)
+- Architecture: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
+- Release: [`docs/RELEASE.md`](./docs/RELEASE.md)
+- Maintenance: [`docs/MAINTAINING.md`](./docs/MAINTAINING.md)
 
 ## Who This Is For
 - solo developers wanting low-friction automation

@@ -7,7 +7,9 @@ import {
   evaluateCloseGate,
   extractTextParts,
   isNoVerifyCommand,
+  isPlanningApprovalMessage,
   isProtectedConfigPath,
+  parsePlanningArtifactFromText,
   parseManualVerificationFromText,
   parseReviewerFromText,
   parseTriageFromText,
@@ -25,6 +27,8 @@ import {
   recordEditedFile,
   recordEscalationEvidence,
   recordLatestUserMessage,
+  recordPlanningApproval,
+  recordPlanningArtifact,
   recordManualVerification,
   recordProtectedBlock,
   recordReviewerResult,
@@ -46,6 +50,58 @@ function isAllowedPreTriageTool(toolName, args) {
 function isLeaderManagedSession(state) {
   const agent = state?.latestUserMessage?.agent || null;
   return !agent || agent === 'leader';
+}
+
+function planningArtifactKindForPath(filePath) {
+  if (!filePath) return null;
+  const normalized = String(filePath).replaceAll('\\', '/');
+  if (normalized.includes('docs/dtt/specs/')) return 'spec';
+  if (normalized.includes('docs/dtt/plans/')) return 'plan';
+  return null;
+}
+
+function isAllowedDuringPlanningGate(state, kind, name, args) {
+  const blockedStage = state?.planningGate?.blockedStage || null;
+  if (kind === 'command') return false;
+  if (['glob', 'grep', 'read'].includes(name)) return true;
+  if (name === 'skill') {
+    const skillName = String(args?.name || '').toLowerCase();
+    if (blockedStage === 'spec') return ['dtt-brainstorming'].includes(skillName);
+    if (blockedStage === 'plan') return ['dtt-writing-plans', 'writing-plans'].includes(skillName);
+    return false;
+  }
+  if (['write', 'edit', 'multiedit'].includes(name)) {
+    const planningKinds = collectFilePaths(args)
+      .map((filePath) => planningArtifactKindForPath(filePath))
+      .filter(Boolean);
+    return planningKinds.length > 0 && planningKinds.every((kindName) => kindName === blockedStage);
+  }
+  if (name !== 'task') return false;
+  const description = `${args?.description || ''} ${args?.prompt || ''}`.toLowerCase();
+  const subagentType = String(args?.subagent_type || '').toLowerCase();
+  const isPlanTask = subagentType === 'plan' || /(plan|planning|计划|规划|方案)/.test(description);
+  const isSpecTask = subagentType === 'spec' || /(spec|规格)/.test(description);
+  if (blockedStage === 'spec') return isSpecTask && !isPlanTask;
+  if (blockedStage === 'plan') return isPlanTask;
+  return false;
+}
+
+function enforcePlanningGate(runtime, sessionID, kind, name, args) {
+  const context = buildContext(runtime, sessionID);
+  const state = loadState(context);
+  if (!isLeaderManagedSession(state)) return context;
+  const blockedStage = state?.planningGate?.blockedStage;
+  if (!state?.planningGate?.enabled || !blockedStage) return context;
+  if (isAllowedDuringPlanningGate(state, kind, name, args)) return context;
+
+  audit(runtime, {
+    type: `${kind}.blocked`,
+    sessionID,
+    [kind]: name,
+    reason: 'planning-gate',
+    blockedStage,
+  });
+  throw new Error(`do-the-thing runtime blocked ${kind} execution: planning gate active at ${blockedStage} stage`);
 }
 
 function enforceTriageBeforeExecution(runtime, sessionID, kind, name, args) {
@@ -133,17 +189,26 @@ export function createRuntimeHooks(runtime) {
     'chat.message': async (input, output) => {
       const context = buildContext(runtime, input.sessionID);
       const text = extractTextParts(output.parts);
-      recordLatestUserMessage(context, {
+      const state = recordLatestUserMessage(context, {
         at: new Date().toISOString(),
         agent: input.agent || 'leader',
         messageID: input.messageID || null,
         text,
       });
+      if (
+        isLeaderManagedSession(state)
+        && state?.planningGate?.enabled
+        && state?.planningGate?.blockedStage
+        && isPlanningApprovalMessage(text)
+      ) {
+        recordPlanningApproval(context, state.planningGate.blockedStage, text);
+      }
       audit(runtime, { type: 'chat.message', sessionID: input.sessionID, agent: input.agent || 'leader' });
     },
 
     'tool.execute.before': async (input, output) => {
       const context = enforceTriageBeforeExecution(runtime, input.sessionID, 'tool', input.tool, output.args || {});
+      enforcePlanningGate(runtime, input.sessionID, 'tool', input.tool, output.args || {});
       const features = activeFeatures(runtime, input.sessionID);
       const args = output.args || {};
 
@@ -178,7 +243,12 @@ export function createRuntimeHooks(runtime) {
 
       if (['write', 'edit', 'multiedit'].includes(input.tool)) {
         for (const filePath of collectFilePaths(input.args)) {
-          recordEditedFile(context, filePath);
+          const planningKind = planningArtifactKindForPath(filePath);
+          if (planningKind) {
+            recordPlanningArtifact(context, planningKind, `planning doc updated: ${filePath}`);
+          } else {
+            recordEditedFile(context, filePath);
+          }
         }
       }
 
@@ -207,6 +277,7 @@ export function createRuntimeHooks(runtime) {
 
     'command.execute.before': async (input) => {
       enforceTriageBeforeExecution(runtime, input.sessionID, 'command', input.command, { arguments: input.arguments });
+      enforcePlanningGate(runtime, input.sessionID, 'command', input.command, { arguments: input.arguments });
       audit(runtime, {
         type: 'command.execute.before',
         sessionID: input.sessionID,
@@ -233,6 +304,9 @@ export function createRuntimeHooks(runtime) {
       const context = buildContext(runtime, input.sessionID);
       const triage = parseTriageFromText(output.text);
       if (triage) recordTriage(context, triage);
+
+      const planningArtifact = parsePlanningArtifactFromText(output.text);
+      if (planningArtifact) recordPlanningArtifact(context, planningArtifact.kind, planningArtifact.summary);
 
       const reviewer = parseReviewerFromText(output.text);
       if (reviewer) {

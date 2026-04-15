@@ -6,7 +6,8 @@ Evaluate whether the system remains stable in the following areas:
 2. lane routing correctness
 3. tier routing reasonableness
 4. escalation effectiveness
-5. end-gate discipline
+5. planning-gate discipline
+6. end-gate discipline
 
 ## How to Use This Rubric
 - this rubric is intended for manual evaluation
@@ -70,7 +71,20 @@ Score:
 - escalation was late but no risk materialized: `D-warn`
 - escalation should have happened but did not: `D-fail` (severe)
 
-## E. End-Gate Discipline
+## E. Planning-Gate Discipline
+Check:
+- whether `needsPlan=true` triggers spec -> approval -> plan -> approval before execution
+- whether spec artifacts are stored under `docs/dtt/specs/`
+- whether plan artifacts are stored under `docs/dtt/plans/`
+- whether planning output remains human-readable in the current conversation language
+- whether runtime blocking prevents execution from starting before the planning gate is cleared
+
+Score:
+- consistent gating: `E-pass`
+- minor doc/output mismatch without bypass: `E-warn`
+- execution started before the required approvals: `E-fail` (severe)
+
+## F. End-Gate Discipline
 Check:
 - whether the lane-specific end gate was actually satisfied
 - whether `strict` blocks closure when reviewer explicitly says it cannot close
@@ -79,17 +93,18 @@ Check:
 - whether delegated subagents consumed the handoff directly instead of rerunning triage or full workflow logic
 
 Score:
-- consistent execution: `E-pass`
-- minor omissions: `E-warn`
-- incorrect closure: `E-fail`
+- consistent execution: `F-pass`
+- minor omissions: `F-warn`
+- incorrect closure: `F-fail`
 
 ## Severe Errors (Must Be Fixed First)
 1. a high-risk task is under-classified into `quick` or `standard`
 2. a sensitive hit occurs but risk still stays low
 3. `strict` closes even though reviewer explicitly says it must not
 4. `finalApprovalTier` is not `tier_top`
-5. escalation was clearly required but did not happen
-6. a workflow-triggering request was misclassified as chat-only and answered directly
+5. `needsPlan=true` execution bypasses spec approval or plan approval
+6. escalation was clearly required but did not happen
+7. a workflow-triggering request was misclassified as chat-only and answered directly
 
 ## Acceptable Errors (Can Be Scheduled Later)
 1. low-risk work is conservatively over-escalated
@@ -99,9 +114,10 @@ Score:
 
 ## Recommended Result Record Format
 - case name:
-- A/B/C/D/E scores:
+- A/B/C/D/E/F scores:
 - high-risk miss: yes/no
 - over-escalation: yes/no
+- planning-gate bypass: yes/no
 - workflow loop occurred: yes/no
 - verification evidence: commands/manual/none (with details)
 - correction suggestion:
