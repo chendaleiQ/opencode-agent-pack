@@ -229,6 +229,29 @@ export function extractTextParts(parts = []) {
     .join('\n');
 }
 
+function collectPatchFilePaths(patchText) {
+  if (!patchText) return [];
+  const paths = [];
+  const patterns = [
+    /^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm,
+    /^\*\*\* Move to: (.+)$/gm,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of String(patchText).matchAll(pattern)) {
+      paths.push(match[1].trim());
+    }
+  }
+
+  return paths;
+}
+
+function collectPatchDeletedFilePaths(patchText) {
+  if (!patchText) return [];
+  return [...String(patchText).matchAll(/^\*\*\* Delete File: (.+)$/gm)]
+    .map((match) => match[1].trim());
+}
+
 export function parseManualVerificationFromText(text) {
   if (!text) return null;
   if (/(manual (check|verification)|手动(检查|验证)|manually checked)/i.test(text)) {
@@ -250,6 +273,9 @@ export function collectFilePaths(args) {
   const values = [];
   for (const [key, value] of Object.entries(args)) {
     if (/file(path)?/i.test(key) && typeof value === 'string') values.push(value);
+    if (/patch(text)?/i.test(key) && typeof value === 'string') {
+      values.push(...collectPatchFilePaths(value));
+    }
     if (Array.isArray(value)) {
       for (const item of value) {
         if (typeof item === 'string' && /\//.test(item)) values.push(item);
@@ -257,6 +283,23 @@ export function collectFilePaths(args) {
       }
     }
     if (value && typeof value === 'object') values.push(...collectFilePaths(value));
+  }
+  return [...new Set(values)];
+}
+
+export function collectDeletedFilePaths(args) {
+  if (!args || typeof args !== 'object') return [];
+  const values = [];
+  for (const [key, value] of Object.entries(args)) {
+    if (/patch(text)?/i.test(key) && typeof value === 'string') {
+      values.push(...collectPatchDeletedFilePaths(value));
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item && typeof item === 'object') values.push(...collectDeletedFilePaths(item));
+      }
+    }
+    if (value && typeof value === 'object') values.push(...collectDeletedFilePaths(value));
   }
   return [...new Set(values)];
 }

@@ -604,6 +604,250 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("allowed", result.stdout)
 
+    def test_runtime_allows_apply_patch_for_spec_and_plan_docs_only(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        spec_patch = json.dumps(
+            "\n".join(
+                [
+                    "*** Begin Patch",
+                    "*** Add File: docs/dtt/specs/example-spec.md",
+                    "+# Spec",
+                    "*** End Patch",
+                ]
+            )
+        )
+        plan_patch = json.dumps(
+            "\n".join(
+                [
+                    "*** Begin Patch",
+                    "*** Add File: docs/dtt/plans/example-plan.md",
+                    "+# Plan",
+                    "*** End Patch",
+                ]
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['tool.execute.before'](
+                  {{ tool: 'apply_patch', sessionID: 'leader-1', callID: 'call-spec' }},
+                  {{ args: {{ patchText: {spec_patch} }} }}
+                );
+                await hooks['tool.execute.after'](
+                  {{
+                    tool: 'apply_patch',
+                    sessionID: 'leader-1',
+                    callID: 'call-spec',
+                    args: {{ patchText: {spec_patch} }},
+                  }},
+                  {{ title: 'write spec', output: '', metadata: {{}} }}
+                );
+                await hooks['chat.message'](
+                  {{ sessionID: 'leader-1', agent: 'leader', messageID: 'm2' }},
+                  {{ parts: [{{ text: 'approved' }}] }}
+                );
+                await hooks['tool.execute.before'](
+                  {{ tool: 'apply_patch', sessionID: 'leader-1', callID: 'call-plan' }},
+                  {{ args: {{ patchText: {plan_patch} }} }}
+                );
+                await hooks['tool.execute.after'](
+                  {{
+                    tool: 'apply_patch',
+                    sessionID: 'leader-1',
+                    callID: 'call-plan',
+                    args: {{ patchText: {plan_patch} }},
+                  }},
+                  {{ title: 'write plan', output: '', metadata: {{}} }}
+                );
+                await hooks['chat.message'](
+                  {{ sessionID: 'leader-1', agent: 'leader', messageID: 'm3' }},
+                  {{ parts: [{{ text: 'approved' }}] }}
+                );
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify({{
+                  blockedStage: state.planningGate.blockedStage,
+                  specStatus: state.planningGate.specStatus,
+                  planStatus: state.planningGate.planStatus,
+                  specArtifacts: state.planningGate.specArtifacts,
+                  planArtifacts: state.planningGate.planArtifacts,
+                  editedFiles: state.editedFiles,
+                }}));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        state = json.loads(result.stdout.strip())
+        self.assertIsNone(state["blockedStage"])
+        self.assertEqual("approved", state["specStatus"])
+        self.assertEqual("approved", state["planStatus"])
+        self.assertEqual(1, len(state["specArtifacts"]))
+        self.assertEqual(1, len(state["planArtifacts"]))
+        self.assertEqual([], state["editedFiles"])
+
+    def test_runtime_blocks_apply_patch_mixed_or_non_markdown_planning_paths(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        mixed_patch = json.dumps(
+            "\n".join(
+                [
+                    "*** Begin Patch",
+                    "*** Add File: docs/dtt/specs/example-spec.md",
+                    "+# Spec",
+                    "*** Add File: src/implementation.js",
+                    "+export const changed = true;",
+                    "*** End Patch",
+                ]
+            )
+        )
+        non_markdown_patch = json.dumps(
+            "\n".join(
+                [
+                    "*** Begin Patch",
+                    "*** Add File: docs/dtt/specs/example-spec.txt",
+                    "+not markdown",
+                    "*** End Patch",
+                ]
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                for (const patchText of [{mixed_patch}, {non_markdown_patch}]) {{
+                  try {{
+                    await hooks['tool.execute.before'](
+                      {{ tool: 'apply_patch', sessionID: 'leader-1', callID: 'call-patch' }},
+                      {{ args: {{ patchText }} }}
+                    );
+                    console.log('allowed');
+                  }} catch (error) {{
+                    console.log(error.message);
+                  }}
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("allowed", result.stdout)
+        self.assertEqual(2, result.stdout.lower().count("planning gate"))
+        self.assertIn("spec", result.stdout.lower())
+
+    def test_runtime_blocks_apply_patch_delete_planning_doc_during_planning_gate(
+        self,
+    ):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        delete_patch = json.dumps(
+            "\n".join(
+                [
+                    "*** Begin Patch",
+                    "*** Delete File: docs/dtt/specs/example-spec.md",
+                    "*** End Patch",
+                ]
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'apply_patch', sessionID: 'leader-1', callID: 'call-patch' }},
+                    {{ args: {{ patchText: {delete_patch} }} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("allowed", result.stdout)
+        self.assertIn("planning gate", result.stdout.lower())
+        self.assertIn("spec", result.stdout.lower())
+
     def test_runtime_blocks_plan_generation_skill_while_spec_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
