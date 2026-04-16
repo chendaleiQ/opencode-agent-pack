@@ -56,10 +56,57 @@ export function parsePlanningArtifactFromText(text) {
 export function isPlanningApprovalMessage(text) {
   if (!text) return false;
   const normalized = String(text).trim();
-  if (!/(批准|通过|同意|approve|approved)/i.test(normalized)) return false;
+  const isExplicitApproval = /(批准|通过|同意|approve|approved)/i.test(normalized);
+  const isShortConfirmation = /^(可以|继续)[。.!！\s]*$/u.test(normalized);
+  if (!isExplicitApproval && !isShortConfirmation) return false;
   if (/(如果|要是|若|如|等|等到|完成后|之后再|以后再|once\b|after\b|when\b|until\b|if\b|then\b)/i.test(normalized)) return false;
   if (/(不批准|不能批准|未批准|暂不批准|还不能批准|不同意|不通过|未通过|暂不通过|还不能通过|not approved|not approve|cannot approve|won't approve|would approve if)/i.test(normalized)) return false;
   return true;
+}
+
+function hasMarkdownHeading(text, heading) {
+  return new RegExp(`(^|\\n)#{1,6}\\s*${heading}\\b`, 'i').test(text);
+}
+
+function isWaitingForStageApproval(text, stage) {
+  if (!text || !stage) return false;
+  const stagePattern = stage === 'spec' ? /(spec|规格)/i : /(plan|计划|方案)/i;
+  return stagePattern.test(text) && /(approve|approval|批准|通过|同意|等待|wait)/i.test(text);
+}
+
+function isAllowedPlanningStageText(text, stage) {
+  if (!text || !stage) return false;
+  if (isWaitingForStageApproval(text, stage)) return true;
+  if (stage === 'spec') return hasMarkdownHeading(text, 'spec');
+  if (stage === 'plan') return hasMarkdownHeading(text, 'plan');
+  return false;
+}
+
+function isForwardProgressText(text, stage) {
+  if (!text) return false;
+  const executionPattern = /(\b(analyz(e|ing)|implement(ing)?|review(ing)?|execute|executing|fix(ing)?|modify(ing)?|change|changing|run review|run tests|close|closing|complete(d)?|ship(ping)?)\b|我将实现|我会实现|开始实现|开始修改|进行评审|执行修复|修复完成|任务完成|已完成)/i;
+  if (executionPattern.test(text)) return true;
+  if (stage === 'spec' && hasMarkdownHeading(text, 'plan')) return true;
+  return false;
+}
+
+export function classifyPlanningOutputGate(text, blockedStage) {
+  if (!blockedStage || !text) return { shouldRewrite: false };
+  if (isForwardProgressText(text, blockedStage)) {
+    return { shouldRewrite: true, blockedStage };
+  }
+  return { shouldRewrite: false };
+}
+
+export function buildPlanningGateBlockedMessage(blockedStage) {
+  const stageLabel = blockedStage === 'spec' ? 'spec' : 'plan';
+  const nextStep = blockedStage === 'spec'
+    ? 'Please wait for spec approval before continuing to the plan or execution.'
+    : 'Please wait for plan approval before continuing to execution.';
+  return [
+    `Planning output blocked by do-the-thing runtime: ${stageLabel} approval is still required.`,
+    nextStep,
+  ].join('\n');
 }
 
 export function isProtectedConfigPath(filePath) {
