@@ -1,6 +1,8 @@
 import {
   buildBlockedCompletionMessage,
+  buildPlanningGateBlockedMessage,
   buildSystemGuard,
+  classifyPlanningOutputGate,
   classifyVerificationCommand,
   collectDeletedFilePaths,
   collectFilePaths,
@@ -327,6 +329,21 @@ export function createRuntimeHooks(runtime) {
 
       const currentState = loadState(context);
       if (!isLeaderManagedSession(currentState)) return;
+
+      if (currentState?.planningGate?.enabled && currentState?.planningGate?.blockedStage) {
+        const planningOutputGate = classifyPlanningOutputGate(
+          output.text,
+          currentState.planningGate.blockedStage,
+        );
+        if (planningOutputGate.shouldRewrite) {
+          audit(runtime, {
+            type: 'completion.planning-output-blocked',
+            sessionID: input.sessionID,
+            blockedStage: currentState.planningGate.blockedStage,
+          });
+          output.text = buildPlanningGateBlockedMessage(currentState.planningGate.blockedStage);
+        }
+      }
 
       const features = activeFeatures(runtime, input.sessionID);
       const gateOptions = {
