@@ -1,10 +1,7 @@
 import {
   buildBlockedCompletionMessage,
-  buildPlanningGateBlockedMessage,
   buildSystemGuard,
-  classifyPlanningOutputGate,
   classifyVerificationCommand,
-  collectDeletedFilePaths,
   collectFilePaths,
   detectClosureAttempt,
   evaluateCloseGate,
@@ -110,51 +107,6 @@ function classifyPlanningQuestionDecision(answers = [], rejected = false) {
     return { decision: 'approved', note: text, answers: labels };
   }
   return { decision: 'changes_requested', note: text, answers: labels };
-}
-
-function isAllowedDuringPlanningGate(state, kind, name, args) {
-  const blockedStage = state?.planningGate?.blockedStage || null;
-  if (kind === 'command') return false;
-  if (['glob', 'grep', 'read'].includes(name)) return true;
-  if (name === 'skill') {
-    const skillName = String(args?.name || '').toLowerCase();
-    if (blockedStage === 'spec') return ['dtt-brainstorming'].includes(skillName);
-    if (blockedStage === 'plan') return ['dtt-writing-plans', 'writing-plans'].includes(skillName);
-    return false;
-  }
-  if (isFileMutationTool(name)) {
-    if (name === 'apply_patch' && collectDeletedFilePaths(args).length > 0) return false;
-    const filePaths = collectFilePaths(args);
-    if (filePaths.length === 0) return false;
-    return filePaths.every((filePath) => planningArtifactKindForPath(filePath) === blockedStage);
-  }
-  if (name === 'question') return isPlanningDecisionQuestion(args, blockedStage);
-  if (name !== 'task') return false;
-  const description = `${args?.description || ''} ${args?.prompt || ''}`.toLowerCase();
-  const subagentType = String(args?.subagent_type || '').toLowerCase();
-  const isPlanTask = subagentType === 'plan' || /(plan|planning|计划|规划|方案)/.test(description);
-  const isSpecTask = subagentType === 'spec' || /(spec|规格)/.test(description);
-  if (blockedStage === 'spec') return isSpecTask && !isPlanTask;
-  if (blockedStage === 'plan') return isPlanTask;
-  return false;
-}
-
-function enforcePlanningGate(runtime, sessionID, kind, name, args) {
-  const context = buildContext(runtime, sessionID);
-  const state = loadState(context);
-  if (!isLeaderManagedSession(state)) return context;
-  const blockedStage = state?.planningGate?.blockedStage;
-  if (!state?.planningGate?.enabled || !blockedStage) return context;
-  if (isAllowedDuringPlanningGate(state, kind, name, args)) return context;
-
-  audit(runtime, {
-    type: `${kind}.blocked`,
-    sessionID,
-    [kind]: name,
-    reason: 'planning-gate',
-    blockedStage,
-  });
-  throw new Error(`do-the-thing runtime blocked ${kind} execution: planning gate active at ${blockedStage} stage`);
 }
 
 function enforceTriageBeforeExecution(runtime, sessionID, kind, name, args) {
@@ -334,7 +286,6 @@ export function createRuntimeHooks(runtime) {
 
     'tool.execute.before': async (input, output) => {
       const context = enforceTriageBeforeExecution(runtime, input.sessionID, 'tool', input.tool, output.args || {});
-      enforcePlanningGate(runtime, input.sessionID, 'tool', input.tool, output.args || {});
       const features = activeFeatures(runtime, input.sessionID);
       const args = output.args || {};
 
@@ -403,7 +354,6 @@ export function createRuntimeHooks(runtime) {
 
     'command.execute.before': async (input) => {
       enforceTriageBeforeExecution(runtime, input.sessionID, 'command', input.command, { arguments: input.arguments });
-      enforcePlanningGate(runtime, input.sessionID, 'command', input.command, { arguments: input.arguments });
       audit(runtime, {
         type: 'command.execute.before',
         sessionID: input.sessionID,
@@ -448,21 +398,6 @@ export function createRuntimeHooks(runtime) {
 
       const currentState = loadState(context);
       if (!isLeaderManagedSession(currentState)) return;
-
-      if (currentState?.planningGate?.enabled && currentState?.planningGate?.blockedStage) {
-        const planningOutputGate = classifyPlanningOutputGate(
-          output.text,
-          currentState.planningGate.blockedStage,
-        );
-        if (planningOutputGate.shouldRewrite) {
-          audit(runtime, {
-            type: 'completion.planning-output-blocked',
-            sessionID: input.sessionID,
-            blockedStage: currentState.planningGate.blockedStage,
-          });
-          output.text = buildPlanningGateBlockedMessage(currentState.planningGate.blockedStage);
-        }
-      }
 
       const features = activeFeatures(runtime, input.sessionID);
       const gateOptions = {

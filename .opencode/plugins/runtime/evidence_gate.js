@@ -64,51 +64,6 @@ export function isPlanningApprovalMessage(text) {
   return true;
 }
 
-function hasMarkdownHeading(text, heading) {
-  return new RegExp(`(^|\\n)#{1,6}\\s*${heading}\\b`, 'i').test(text);
-}
-
-function isWaitingForStageApproval(text, stage) {
-  if (!text || !stage) return false;
-  const stagePattern = stage === 'spec' ? /(spec|规格)/i : /(plan|计划|方案)/i;
-  return stagePattern.test(text) && /(approve|approval|批准|通过|同意|等待|wait)/i.test(text);
-}
-
-function isAllowedPlanningStageText(text, stage) {
-  if (!text || !stage) return false;
-  if (isWaitingForStageApproval(text, stage)) return true;
-  if (stage === 'spec') return hasMarkdownHeading(text, 'spec');
-  if (stage === 'plan') return hasMarkdownHeading(text, 'plan');
-  return false;
-}
-
-function isForwardProgressText(text, stage) {
-  if (!text) return false;
-  const executionPattern = /(\b(analyz(e|ing)|implement(ing)?|review(ing)?|execute|executing|fix(ing)?|modify(ing)?|change|changing|run review|run tests|close|closing|complete(d)?|ship(ping)?)\b|我将实现|我会实现|开始实现|开始修改|进行评审|执行修复|修复完成|任务完成|已完成)/i;
-  if (executionPattern.test(text)) return true;
-  if (stage === 'spec' && hasMarkdownHeading(text, 'plan')) return true;
-  return false;
-}
-
-export function classifyPlanningOutputGate(text, blockedStage) {
-  if (!blockedStage || !text) return { shouldRewrite: false };
-  if (isForwardProgressText(text, blockedStage)) {
-    return { shouldRewrite: true, blockedStage };
-  }
-  return { shouldRewrite: false };
-}
-
-export function buildPlanningGateBlockedMessage(blockedStage) {
-  const stageLabel = blockedStage === 'spec' ? 'spec' : 'plan';
-  const nextStep = blockedStage === 'spec'
-    ? 'Please wait for spec approval before continuing to the plan or execution.'
-    : 'Please wait for plan approval before continuing to execution.';
-  return [
-    `Planning output blocked by do-the-thing runtime: ${stageLabel} approval is still required.`,
-    nextStep,
-  ].join('\n');
-}
-
 export function isProtectedConfigPath(filePath) {
   if (!filePath) return false;
   return PROTECTED_CONFIG_PATTERNS.some((pattern) => pattern.test(filePath));
@@ -186,9 +141,6 @@ export function evaluateCloseGate(state, options = {}) {
   const missing = [];
   if (state?.phase !== 'closable') missing.push('state not closable');
   if (!state?.triage) missing.push('missing triage');
-  if (state?.planningGate?.enabled && state?.planningGate?.blockedStage) {
-    missing.push(`planning gate blocked at ${state.planningGate.blockedStage}`);
-  }
   missing.push(...resolveMissingEvidence(state, options));
   if ((state?.editedFiles || []).length > 0) {
     const verificationStatus = state?.verification?.status;
@@ -230,7 +182,7 @@ export function buildSystemGuard(state) {
   }
   if (planningGate?.enabled) {
     if (planningGate.blockedStage) {
-      lines.push(`- Planning gate active: ${planningGate.blockedStage} stage is still blocked (spec=${planningGate.specStatus}, plan=${planningGate.planStatus}).`);
+      lines.push(`- Planning state pending: ${planningGate.blockedStage} approval is not recorded yet (spec=${planningGate.specStatus}, plan=${planningGate.planStatus}); this is guidance only and runtime will not block planning-related tools or output.`);
     } else {
       lines.push(`- Planning gate satisfied (spec=${planningGate.specStatus}, plan=${planningGate.planStatus}).`);
     }

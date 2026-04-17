@@ -408,7 +408,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             )
         self.assertEqual("allowed", output)
 
-    def test_runtime_system_guard_reports_planning_gate_stage(self):
+    def test_runtime_system_guard_reports_planning_state_as_guidance(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -451,10 +451,11 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             )
         self.assertEqual(result.returncode, 0, result.stderr)
         output = "\n".join(json.loads(result.stdout.strip()))
-        self.assertIn("planning gate", output.lower())
+        self.assertIn("planning state pending", output.lower())
+        self.assertIn("guidance only", output.lower())
         self.assertIn("spec", output.lower())
 
-    def test_runtime_blocks_implementation_tools_until_plan_is_approved(self):
+    def test_runtime_allows_implementation_tools_during_planning_gate(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -499,8 +500,8 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
     def test_runtime_chinese_approval_message_advances_planning_gate_state(self):
         plugin_url = (
@@ -1066,7 +1067,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual("spec", planning_gate["blockedStage"])
         self.assertEqual("rejected", planning_gate["decisions"][0]["decision"])
 
-    def test_runtime_blocks_unrelated_question_during_planning_gate(self):
+    def test_runtime_allows_unrelated_question_during_planning_gate(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1127,8 +1128,8 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
     def test_runtime_allows_planning_doc_write_before_plan_approval(self):
         plugin_url = (
@@ -1288,7 +1289,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual(1, len(state["planArtifacts"]))
         self.assertEqual([], state["editedFiles"])
 
-    def test_runtime_blocks_apply_patch_mixed_or_non_markdown_planning_paths(self):
+    def test_runtime_allows_apply_patch_mixed_or_non_markdown_planning_paths(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1357,11 +1358,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("allowed", result.stdout)
-        self.assertEqual(2, result.stdout.lower().count("planning gate"))
-        self.assertIn("spec", result.stdout.lower())
+        self.assertEqual(2, result.stdout.count("allowed"))
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_blocks_apply_patch_delete_planning_doc_during_planning_gate(
+    def test_runtime_allows_apply_patch_delete_planning_doc_during_planning_gate(
         self,
     ):
         plugin_url = (
@@ -1417,11 +1417,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("allowed", result.stdout)
-        self.assertIn("planning gate", result.stdout.lower())
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_blocks_plan_generation_skill_while_spec_stage_is_blocked(self):
+    def test_runtime_allows_plan_generation_skill_while_spec_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1466,10 +1465,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout.lower())
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_blocks_plan_generation_task_while_spec_stage_is_blocked(self):
+    def test_runtime_allows_plan_generation_task_while_spec_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1514,8 +1513,8 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout.lower())
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
     def test_runtime_planning_doc_write_does_not_count_as_implementation_edit(self):
         plugin_url = (
@@ -1691,7 +1690,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual("drafted", planning_gate["specStatus"])
         self.assertEqual("spec", planning_gate["blockedStage"])
 
-    def test_runtime_blocks_unrelated_skill_during_spec_stage(self):
+    def test_runtime_allows_unrelated_skill_during_spec_stage(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1736,10 +1735,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_blocks_unrelated_skill_during_plan_stage(self):
+    def test_runtime_allows_unrelated_skill_during_plan_stage(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1792,10 +1791,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout)
-        self.assertIn("plan", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_rewrites_plan_text_while_spec_stage_is_blocked(self):
+    def test_runtime_keeps_plan_text_while_spec_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1838,11 +1837,9 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("## Plan", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual(blocked_text, result.stdout.strip())
 
-    def test_runtime_rewrites_execution_text_while_spec_stage_is_blocked(self):
+    def test_runtime_keeps_execution_text_while_spec_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1884,11 +1881,11 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("Now I will implement", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual(
+            "Now I will implement the fix and run review.", result.stdout.strip()
+        )
 
-    def test_runtime_rewrites_execution_text_while_plan_stage_is_blocked(self):
+    def test_runtime_keeps_execution_text_while_plan_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1938,9 +1935,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("Now I will implement", result.stdout)
-        self.assertIn("plan", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual("Now I will implement the fix.", result.stdout.strip())
 
     def test_runtime_keeps_spec_text_while_spec_stage_is_blocked(self):
         plugin_url = (
@@ -2044,7 +2039,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(allowed_text, result.stdout.strip())
 
-    def test_runtime_rewrites_mixed_spec_and_plan_text_while_spec_stage_is_blocked(
+    def test_runtime_keeps_mixed_spec_and_plan_text_while_spec_stage_is_blocked(
         self,
     ):
         plugin_url = (
@@ -2092,11 +2087,9 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("## Plan", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual(mixed_text, result.stdout.strip())
 
-    def test_runtime_rewrites_mixed_plan_and_execution_text_while_plan_stage_is_blocked(
+    def test_runtime_keeps_mixed_plan_and_execution_text_while_plan_stage_is_blocked(
         self,
     ):
         plugin_url = (
@@ -2152,9 +2145,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("Now I will implement", result.stdout)
-        self.assertIn("plan", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual(mixed_text, result.stdout.strip())
 
     def test_runtime_rewrites_blocked_completion_attempt(self):
         plugin_url = (

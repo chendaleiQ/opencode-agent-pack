@@ -84,6 +84,7 @@ When `needsPlan=true`, needsPlan=true requires spec before plan:
 - plan approval is required before todo and before analyze/execute/review
 - plan approval must be requested with the `question` tool using approve/change/reject options; free-form text approval is only a fallback
 - both human-readable outputs and spec/plan documents follow current conversation language
+- OpenCode runtime records planning state and approvals for visibility, but spec/plan discipline is prompt-led; runtime does not hard-block tools, commands, text output, or close-gate completion solely because planning approval is pending
 
 ## External Workflow Systems
 External workflow systems are not needed for normal operation.
@@ -182,6 +183,7 @@ When running inside OpenCode, do-the-thing can add a lightweight runtime guard l
 The runtime guard is designed to make workflow bypass harder for weaker models by adding:
 - Hooks-based blocking for obvious bypasses
 - entry-driven workflow state (`entryType`) and phase tracking (`phase`)
+- planning state tracking as guidance rather than hard blocking
 - layered evidence tracking for triage, review, verification, manual checks, and escalation
 - workflow state persisted per session
 - audit logging for important workflow events
