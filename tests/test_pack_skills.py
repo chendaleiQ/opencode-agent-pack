@@ -219,6 +219,19 @@ class PackSkillsTests(unittest.TestCase):
         self.assertIn("`dtt-executing-plans`", workflow)
         self.assertIn("`dtt-finishing-a-development-branch`", workflow)
 
+    def test_opencode_docs_include_dev_branch_update_path(self):
+        readme = (self.repo_root / "README.md").read_text(encoding="utf-8")
+        install_doc = (self.repo_root / ".opencode" / "INSTALL.md").read_text(
+            encoding="utf-8"
+        )
+        dev_script = self.repo_root / "install" / "opencode-dev-update.sh"
+
+        self.assertTrue(dev_script.exists())
+        self.assertIn("opencode-dev-update.sh", readme)
+        self.assertIn("Track a Development Branch Reliably", install_doc)
+        self.assertIn("DTT_DEV_REF", install_doc)
+        self.assertIn("DTT_PLUGIN_REF=<resolved-sha>", install_doc)
+
     def test_docs_deemphasize_external_superpowers(self):
         english = (self.repo_root / "README.md").read_text(encoding="utf-8")
         workflow = (self.repo_root / "docs" / "WORKFLOW.md").read_text(encoding="utf-8")

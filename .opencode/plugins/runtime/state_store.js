@@ -32,6 +32,8 @@ function createPlanningGate(enabled = false) {
     specArtifacts: [],
     planArtifacts: [],
     approvals: [],
+    decisions: [],
+    pendingQuestions: [],
   };
 }
 
@@ -51,6 +53,8 @@ function normalizePlanningGate(planningGate, needsPlan = false) {
     specArtifacts: Array.isArray(planningGate?.specArtifacts) ? planningGate.specArtifacts : [],
     planArtifacts: Array.isArray(planningGate?.planArtifacts) ? planningGate.planArtifacts : [],
     approvals: Array.isArray(planningGate?.approvals) ? planningGate.approvals : [],
+    decisions: Array.isArray(planningGate?.decisions) ? planningGate.decisions : [],
+    pendingQuestions: Array.isArray(planningGate?.pendingQuestions) ? planningGate.pendingQuestions : [],
   };
 
   if (!next.enabled) {
@@ -326,6 +330,93 @@ export function recordPlanningApproval(context, artifactType, note) {
   });
 }
 
+function summarizeQuestions(questions = []) {
+  return questions.map((question) => ({
+    header: question?.header || '',
+    question: question?.question || '',
+    options: Array.isArray(question?.options)
+      ? question.options.map((option) => option?.label || '').filter(Boolean)
+      : [],
+  }));
+}
+
+function removePendingQuestion(pendingQuestions = [], requestID) {
+  if (!requestID) return pendingQuestions;
+  return pendingQuestions.filter((item) => item?.requestID !== requestID);
+}
+
+export function recordPlanningQuestion(context, requestID, artifactType, questions = []) {
+  return updateState(context, (state) => {
+    state.planningGate = normalizePlanningGate(state.planningGate, state.triage?.needsPlan);
+    if (!state.planningGate.enabled || !requestID || !['spec', 'plan'].includes(artifactType)) return state;
+
+    const entry = {
+      at: now(),
+      requestID,
+      kind: artifactType,
+      questions: summarizeQuestions(questions),
+    };
+    state.planningGate.pendingQuestions = [
+      ...removePendingQuestion(state.planningGate.pendingQuestions, requestID),
+      entry,
+    ].slice(-10);
+    return state;
+  });
+}
+
+export function recordPlanningDecision(context, decision) {
+  return updateState(context, (state) => {
+    state.planningGate = normalizePlanningGate(state.planningGate, state.triage?.needsPlan);
+    if (!state.planningGate.enabled) return state;
+
+    const pending = (state.planningGate.pendingQuestions || [])
+      .find((item) => item?.requestID === decision?.requestID);
+    const artifactType = decision?.artifactType || pending?.kind || state.planningGate.blockedStage;
+    if (!['spec', 'plan'].includes(artifactType)) return state;
+
+    const normalizedDecision = decision?.decision === 'approved'
+      ? 'approved'
+      : decision?.decision === 'rejected'
+        ? 'rejected'
+        : 'changes_requested';
+    const note = decision?.note || '';
+    const entry = {
+      at: now(),
+      requestID: decision?.requestID || null,
+      kind: artifactType,
+      decision: normalizedDecision,
+      note,
+      answers: Array.isArray(decision?.answers) ? decision.answers : [],
+    };
+    state.planningGate.decisions = [...state.planningGate.decisions, entry].slice(-20);
+    state.planningGate.pendingQuestions = removePendingQuestion(
+      state.planningGate.pendingQuestions,
+      decision?.requestID,
+    );
+
+    if (normalizedDecision === 'approved') {
+      const hasArtifact = artifactType === 'spec'
+        ? state.planningGate.specArtifacts.length > 0
+        : state.planningGate.planArtifacts.length > 0;
+      if (hasArtifact) {
+        if (artifactType === 'spec') state.planningGate.specStatus = 'approved';
+        if (artifactType === 'plan') state.planningGate.planStatus = 'approved';
+        state.planningGate.approvals = [
+          ...state.planningGate.approvals,
+          { at: now(), kind: artifactType, note },
+        ].slice(-10);
+      }
+    } else if (artifactType === 'spec' && state.planningGate.specStatus !== 'approved') {
+      state.planningGate.specStatus = normalizedDecision;
+    } else if (artifactType === 'plan' && state.planningGate.planStatus !== 'approved') {
+      state.planningGate.planStatus = normalizedDecision;
+    }
+
+    state.planningGate.blockedStage = deriveBlockedStage(state.planningGate);
+    return state;
+  });
+}
+
 export function recordReviewerResult(context, reviewer) {
   return updateState(context, (state) => {
     state.reviewer.required = true;
@@ -401,6 +492,14 @@ export function mergeChildSessionState(context, childSessionID) {
       state.planningGate.approvals = dedupeObjects([
         ...state.planningGate.approvals,
         ...childPlanningGate.approvals,
+      ]).slice(-20);
+      state.planningGate.decisions = dedupeObjects([
+        ...state.planningGate.decisions,
+        ...childPlanningGate.decisions,
+      ]).slice(-20);
+      state.planningGate.pendingQuestions = dedupeObjects([
+        ...state.planningGate.pendingQuestions,
+        ...childPlanningGate.pendingQuestions,
       ]).slice(-20);
       state.planningGate.blockedStage = deriveBlockedStage(state.planningGate);
     }

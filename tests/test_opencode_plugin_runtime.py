@@ -408,7 +408,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             )
         self.assertEqual("allowed", output)
 
-    def test_runtime_system_guard_reports_planning_gate_stage(self):
+    def test_runtime_system_guard_reports_planning_state_as_guidance(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -451,10 +451,11 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
             )
         self.assertEqual(result.returncode, 0, result.stderr)
         output = "\n".join(json.loads(result.stdout.strip()))
-        self.assertIn("planning gate", output.lower())
+        self.assertIn("planning state pending", output.lower())
+        self.assertIn("guidance only", output.lower())
         self.assertIn("spec", output.lower())
 
-    def test_runtime_blocks_implementation_tools_until_plan_is_approved(self):
+    def test_runtime_allows_implementation_tools_during_planning_gate(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -499,8 +500,8 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
     def test_runtime_chinese_approval_message_advances_planning_gate_state(self):
         plugin_url = (
@@ -667,6 +668,469 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual("plan", planning_gate["blockedStage"])
         self.assertEqual(1, len(planning_gate["approvals"]))
 
+    def test_runtime_question_approval_advances_spec_planning_gate(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        question_args = json.dumps(
+            {
+                "questions": [
+                    {
+                        "header": "Spec 审批",
+                        "multiple": False,
+                        "custom": True,
+                        "options": [
+                            {
+                                "label": "批准 spec，进入 plan",
+                                "description": "Spec 已通过，可以开始写 plan。",
+                            },
+                            {
+                                "label": "需要补充 spec",
+                                "description": "Spec 还需要调整，继续停在 spec 阶段。",
+                            },
+                            {
+                                "label": "拒绝 spec",
+                                "description": "取消当前方案。",
+                            },
+                        ],
+                        "question": "请确认当前 spec 是否通过。",
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm2', partID: 'p2' }},
+                  {{ text: JSON.stringify({{ planningArtifact: 'spec', summary: 'spec drafted' }}) }}
+                );
+                await hooks['tool.execute.before'](
+                  {{ tool: 'question', sessionID: 'leader-1', callID: 'call-question' }},
+                  {{ args: {question_args} }}
+                );
+                await hooks.event({{
+                  event: {{
+                    type: 'question.asked',
+                    properties: {{ id: 'q-spec-1', sessionID: 'leader-1', ...{question_args} }},
+                  }},
+                }});
+                await hooks.event({{
+                  event: {{
+                    type: 'question.replied',
+                    properties: {{
+                      sessionID: 'leader-1',
+                      requestID: 'q-spec-1',
+                      answers: [['批准 spec，进入 plan']],
+                    }},
+                  }},
+                }});
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify(state.planningGate));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        planning_gate = json.loads(result.stdout.strip())
+        self.assertEqual("approved", planning_gate["specStatus"])
+        self.assertEqual("plan", planning_gate["blockedStage"])
+        self.assertEqual(1, len(planning_gate["approvals"]))
+        self.assertEqual(1, len(planning_gate["decisions"]))
+        self.assertEqual("approved", planning_gate["decisions"][0]["decision"])
+
+    def test_runtime_question_feedback_keeps_spec_gate_blocked(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        question_args = json.dumps(
+            {
+                "questions": [
+                    {
+                        "header": "Spec 审批",
+                        "multiple": False,
+                        "options": [
+                            {
+                                "label": "批准 spec，进入 plan",
+                                "description": "Spec 已通过，可以开始写 plan。",
+                            },
+                            {
+                                "label": "需要补充 spec",
+                                "description": "Spec 还需要调整，继续停在 spec 阶段。",
+                            },
+                            {
+                                "label": "拒绝 spec",
+                                "description": "取消当前方案。",
+                            },
+                        ],
+                        "question": "请确认当前 spec 是否通过。",
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm2', partID: 'p2' }},
+                  {{ text: JSON.stringify({{ planningArtifact: 'spec', summary: 'spec drafted' }}) }}
+                );
+                await hooks['tool.execute.before'](
+                  {{ tool: 'question', sessionID: 'leader-1', callID: 'call-question' }},
+                  {{ args: {question_args} }}
+                );
+                await hooks.event({{
+                  event: {{
+                    type: 'question.asked',
+                    properties: {{ id: 'q-spec-1', sessionID: 'leader-1', ...{question_args} }},
+                  }},
+                }});
+                await hooks.event({{
+                  event: {{
+                    type: 'question.replied',
+                    properties: {{
+                      sessionID: 'leader-1',
+                      requestID: 'q-spec-1',
+                      answers: [['需要补充 spec']],
+                    }},
+                  }},
+                }});
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify(state.planningGate));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        planning_gate = json.loads(result.stdout.strip())
+        self.assertEqual("changes_requested", planning_gate["specStatus"])
+        self.assertEqual("spec", planning_gate["blockedStage"])
+        self.assertEqual([], planning_gate["approvals"])
+        self.assertEqual("changes_requested", planning_gate["decisions"][0]["decision"])
+
+    def test_runtime_question_approval_advances_plan_planning_gate(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        question_args = json.dumps(
+            {
+                "questions": [
+                    {
+                        "header": "Plan 审批",
+                        "multiple": False,
+                        "custom": True,
+                        "options": [
+                            {
+                                "label": "批准 plan，开始实现",
+                                "description": "Plan 已通过，可以进入实现。",
+                            },
+                            {
+                                "label": "需要修改 plan",
+                                "description": "Plan 还需要调整，继续停在 plan 阶段。",
+                            },
+                            {
+                                "label": "拒绝 plan",
+                                "description": "取消当前计划。",
+                            },
+                        ],
+                        "question": "请确认当前 plan 是否通过。",
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm2', partID: 'p2' }},
+                  {{ text: JSON.stringify({{ planningArtifact: 'spec', summary: 'spec drafted' }}) }}
+                );
+                await hooks['chat.message'](
+                  {{ sessionID: 'leader-1', agent: 'leader', messageID: 'm3' }},
+                  {{ parts: [{{ text: 'approved' }}] }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm4', partID: 'p4' }},
+                  {{ text: JSON.stringify({{ planningArtifact: 'plan', summary: 'plan drafted' }}) }}
+                );
+                await hooks['tool.execute.before'](
+                  {{ tool: 'question', sessionID: 'leader-1', callID: 'call-question' }},
+                  {{ args: {question_args} }}
+                );
+                await hooks.event({{
+                  event: {{
+                    type: 'question.asked',
+                    properties: {{ id: 'q-plan-1', sessionID: 'leader-1', ...{question_args} }},
+                  }},
+                }});
+                await hooks.event({{
+                  event: {{
+                    type: 'question.replied',
+                    properties: {{
+                      sessionID: 'leader-1',
+                      requestID: 'q-plan-1',
+                      answers: [['批准 plan，开始实现']],
+                    }},
+                  }},
+                }});
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify(state.planningGate));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        planning_gate = json.loads(result.stdout.strip())
+        self.assertIsNone(planning_gate["blockedStage"])
+        self.assertEqual("approved", planning_gate["specStatus"])
+        self.assertEqual("approved", planning_gate["planStatus"])
+        self.assertEqual(2, len(planning_gate["approvals"]))
+        self.assertEqual("approved", planning_gate["decisions"][0]["decision"])
+
+    def test_runtime_question_rejection_keeps_spec_gate_blocked(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        question_args = json.dumps(
+            {
+                "questions": [
+                    {
+                        "header": "Spec 审批",
+                        "multiple": False,
+                        "options": [
+                            {
+                                "label": "批准 spec，进入 plan",
+                                "description": "Spec 已通过，可以开始写 plan。",
+                            },
+                            {
+                                "label": "需要补充 spec",
+                                "description": "Spec 还需要调整，继续停在 spec 阶段。",
+                            },
+                            {
+                                "label": "拒绝 spec",
+                                "description": "取消当前方案。",
+                            },
+                        ],
+                        "question": "请确认当前 spec 是否通过。",
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                import fs from 'fs';
+                import path from 'path';
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm2', partID: 'p2' }},
+                  {{ text: JSON.stringify({{ planningArtifact: 'spec', summary: 'spec drafted' }}) }}
+                );
+                await hooks['tool.execute.before'](
+                  {{ tool: 'question', sessionID: 'leader-1', callID: 'call-question' }},
+                  {{ args: {question_args} }}
+                );
+                await hooks.event({{
+                  event: {{
+                    type: 'question.asked',
+                    properties: {{ id: 'q-spec-1', sessionID: 'leader-1', ...{question_args} }},
+                  }},
+                }});
+                await hooks.event({{
+                  event: {{
+                    type: 'question.rejected',
+                    properties: {{ sessionID: 'leader-1', requestID: 'q-spec-1' }},
+                  }},
+                }});
+                const file = path.join({json.dumps(tmpdir)}, 'do-the-thing', 'sessions');
+                const projectDir = fs.readdirSync(file)[0];
+                const state = JSON.parse(fs.readFileSync(path.join(file, projectDir, 'leader-1.json'), 'utf-8'));
+                console.log(JSON.stringify(state.planningGate));
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        planning_gate = json.loads(result.stdout.strip())
+        self.assertEqual("rejected", planning_gate["specStatus"])
+        self.assertEqual("spec", planning_gate["blockedStage"])
+        self.assertEqual("rejected", planning_gate["decisions"][0]["decision"])
+
+    def test_runtime_allows_unrelated_question_during_planning_gate(self):
+        plugin_url = (
+            self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
+        ).as_uri()
+        triage_payload = json.dumps(
+            json.dumps(
+                {
+                    "lane": "standard",
+                    "complexity": "high",
+                    "risk": "low",
+                    "needsPlan": True,
+                    "needsReviewer": False,
+                    "finalApprovalTier": "tier_top",
+                },
+                ensure_ascii=False,
+            )
+        )
+        question_args = json.dumps(
+            {
+                "questions": [
+                    {
+                        "header": "系统依赖",
+                        "multiple": False,
+                        "options": [
+                            {"label": "安装依赖", "description": "继续安装系统依赖。"},
+                            {"label": "先停一下", "description": "暂时不安装。"},
+                        ],
+                        "question": "是否安装 Homebrew 依赖？",
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["OPENCODE_CONFIG_DIR"] = tmpdir
+            result = self._run_node_result(
+                f"""
+                const mod = await import({json.dumps(plugin_url)});
+                const hooks = await mod.DoTheThingPlugin({{
+                  project: {{ id: 'proj-1' }},
+                  directory: {json.dumps(str(self.repo_root))},
+                  worktree: {json.dumps(str(self.repo_root))},
+                }});
+                await hooks['experimental.text.complete'](
+                  {{ sessionID: 'leader-1', messageID: 'm1', partID: 'p1' }},
+                  {{ text: {triage_payload} }}
+                );
+                try {{
+                  await hooks['tool.execute.before'](
+                    {{ tool: 'question', sessionID: 'leader-1', callID: 'call-question' }},
+                    {{ args: {question_args} }}
+                  );
+                  console.log('allowed');
+                }} catch (error) {{
+                  console.log(error.message);
+                }}
+                """,
+                env=env,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
+
     def test_runtime_allows_planning_doc_write_before_plan_approval(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
@@ -825,7 +1289,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual(1, len(state["planArtifacts"]))
         self.assertEqual([], state["editedFiles"])
 
-    def test_runtime_blocks_apply_patch_mixed_or_non_markdown_planning_paths(self):
+    def test_runtime_allows_apply_patch_mixed_or_non_markdown_planning_paths(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -894,11 +1358,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("allowed", result.stdout)
-        self.assertEqual(2, result.stdout.lower().count("planning gate"))
-        self.assertIn("spec", result.stdout.lower())
+        self.assertEqual(2, result.stdout.count("allowed"))
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_blocks_apply_patch_delete_planning_doc_during_planning_gate(
+    def test_runtime_allows_apply_patch_delete_planning_doc_during_planning_gate(
         self,
     ):
         plugin_url = (
@@ -954,11 +1417,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("allowed", result.stdout)
-        self.assertIn("planning gate", result.stdout.lower())
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_blocks_plan_generation_skill_while_spec_stage_is_blocked(self):
+    def test_runtime_allows_plan_generation_skill_while_spec_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1003,10 +1465,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout.lower())
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_blocks_plan_generation_task_while_spec_stage_is_blocked(self):
+    def test_runtime_allows_plan_generation_task_while_spec_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1051,8 +1513,8 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout.lower())
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
     def test_runtime_planning_doc_write_does_not_count_as_implementation_edit(self):
         plugin_url = (
@@ -1228,7 +1690,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual("drafted", planning_gate["specStatus"])
         self.assertEqual("spec", planning_gate["blockedStage"])
 
-    def test_runtime_blocks_unrelated_skill_during_spec_stage(self):
+    def test_runtime_allows_unrelated_skill_during_spec_stage(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1273,10 +1735,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_blocks_unrelated_skill_during_plan_stage(self):
+    def test_runtime_allows_unrelated_skill_during_plan_stage(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1329,10 +1791,10 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("planning gate", result.stdout)
-        self.assertIn("plan", result.stdout.lower())
+        self.assertIn("allowed", result.stdout)
+        self.assertNotIn("planning gate", result.stdout.lower())
 
-    def test_runtime_rewrites_plan_text_while_spec_stage_is_blocked(self):
+    def test_runtime_keeps_plan_text_while_spec_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1375,11 +1837,9 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("## Plan", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual(blocked_text, result.stdout.strip())
 
-    def test_runtime_rewrites_execution_text_while_spec_stage_is_blocked(self):
+    def test_runtime_keeps_execution_text_while_spec_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1421,11 +1881,11 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("Now I will implement", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual(
+            "Now I will implement the fix and run review.", result.stdout.strip()
+        )
 
-    def test_runtime_rewrites_execution_text_while_plan_stage_is_blocked(self):
+    def test_runtime_keeps_execution_text_while_plan_stage_is_blocked(self):
         plugin_url = (
             self.repo_root / ".opencode" / "plugins" / "do-the-thing.js"
         ).as_uri()
@@ -1475,9 +1935,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("Now I will implement", result.stdout)
-        self.assertIn("plan", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual("Now I will implement the fix.", result.stdout.strip())
 
     def test_runtime_keeps_spec_text_while_spec_stage_is_blocked(self):
         plugin_url = (
@@ -1581,7 +2039,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(allowed_text, result.stdout.strip())
 
-    def test_runtime_rewrites_mixed_spec_and_plan_text_while_spec_stage_is_blocked(
+    def test_runtime_keeps_mixed_spec_and_plan_text_while_spec_stage_is_blocked(
         self,
     ):
         plugin_url = (
@@ -1629,11 +2087,9 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("## Plan", result.stdout)
-        self.assertIn("spec", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual(mixed_text, result.stdout.strip())
 
-    def test_runtime_rewrites_mixed_plan_and_execution_text_while_plan_stage_is_blocked(
+    def test_runtime_keeps_mixed_plan_and_execution_text_while_plan_stage_is_blocked(
         self,
     ):
         plugin_url = (
@@ -1689,9 +2145,7 @@ class OpenCodePluginRuntimeTests(unittest.TestCase):
                 env=env,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("Now I will implement", result.stdout)
-        self.assertIn("plan", result.stdout.lower())
-        self.assertIn("approval", result.stdout.lower())
+        self.assertEqual(mixed_text, result.stdout.strip())
 
     def test_runtime_rewrites_blocked_completion_attempt(self):
         plugin_url = (

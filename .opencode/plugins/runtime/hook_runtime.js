@@ -1,10 +1,7 @@
 import {
   buildBlockedCompletionMessage,
-  buildPlanningGateBlockedMessage,
   buildSystemGuard,
-  classifyPlanningOutputGate,
   classifyVerificationCommand,
-  collectDeletedFilePaths,
   collectFilePaths,
   detectClosureAttempt,
   evaluateCloseGate,
@@ -32,6 +29,8 @@ import {
   recordLatestUserMessage,
   recordPlanningApproval,
   recordPlanningArtifact,
+  recordPlanningDecision,
+  recordPlanningQuestion,
   recordManualVerification,
   recordProtectedBlock,
   recordReviewerResult,
@@ -67,48 +66,47 @@ function isFileMutationTool(toolName) {
   return ['write', 'edit', 'multiedit', 'apply_patch'].includes(toolName);
 }
 
-function isAllowedDuringPlanningGate(state, kind, name, args) {
-  const blockedStage = state?.planningGate?.blockedStage || null;
-  if (kind === 'command') return false;
-  if (['glob', 'grep', 'read'].includes(name)) return true;
-  if (name === 'skill') {
-    const skillName = String(args?.name || '').toLowerCase();
-    if (blockedStage === 'spec') return ['dtt-brainstorming'].includes(skillName);
-    if (blockedStage === 'plan') return ['dtt-writing-plans', 'writing-plans'].includes(skillName);
-    return false;
-  }
-  if (isFileMutationTool(name)) {
-    if (name === 'apply_patch' && collectDeletedFilePaths(args).length > 0) return false;
-    const filePaths = collectFilePaths(args);
-    if (filePaths.length === 0) return false;
-    return filePaths.every((filePath) => planningArtifactKindForPath(filePath) === blockedStage);
-  }
-  if (name !== 'task') return false;
-  const description = `${args?.description || ''} ${args?.prompt || ''}`.toLowerCase();
-  const subagentType = String(args?.subagent_type || '').toLowerCase();
-  const isPlanTask = subagentType === 'plan' || /(plan|planning|计划|规划|方案)/.test(description);
-  const isSpecTask = subagentType === 'spec' || /(spec|规格)/.test(description);
-  if (blockedStage === 'spec') return isSpecTask && !isPlanTask;
-  if (blockedStage === 'plan') return isPlanTask;
-  return false;
+function flattenQuestionText(args) {
+  const questions = Array.isArray(args?.questions) ? args.questions : [];
+  return questions.flatMap((question) => [
+    question?.header,
+    question?.question,
+    ...(Array.isArray(question?.options)
+      ? question.options.flatMap((option) => [option?.label, option?.description])
+      : []),
+  ]).filter(Boolean).join(' ');
 }
 
-function enforcePlanningGate(runtime, sessionID, kind, name, args) {
-  const context = buildContext(runtime, sessionID);
-  const state = loadState(context);
-  if (!isLeaderManagedSession(state)) return context;
-  const blockedStage = state?.planningGate?.blockedStage;
-  if (!state?.planningGate?.enabled || !blockedStage) return context;
-  if (isAllowedDuringPlanningGate(state, kind, name, args)) return context;
+function isPlanningDecisionQuestion(args, blockedStage) {
+  if (!blockedStage) return false;
+  const text = flattenQuestionText(args);
+  if (!text) return false;
+  const stagePattern = blockedStage === 'spec'
+    ? /(spec|规格)/i
+    : /(plan|计划|方案)/i;
+  const decisionPattern = /(批准|通过|同意|approve|approval|需要补充|补充|修改|调整|changes?|revise|拒绝|取消|reject|cancel)/i;
+  return stagePattern.test(text) && decisionPattern.test(text);
+}
 
-  audit(runtime, {
-    type: `${kind}.blocked`,
-    sessionID,
-    [kind]: name,
-    reason: 'planning-gate',
-    blockedStage,
-  });
-  throw new Error(`do-the-thing runtime blocked ${kind} execution: planning gate active at ${blockedStage} stage`);
+function flattenAnswers(answers = []) {
+  if (!Array.isArray(answers)) return [];
+  return answers.flatMap((answer) => (Array.isArray(answer) ? answer : [answer]))
+    .filter((item) => item != null && item !== '')
+    .map((item) => String(item));
+}
+
+function classifyPlanningQuestionDecision(answers = [], rejected = false) {
+  if (rejected) return { decision: 'rejected', note: 'question rejected', answers: [] };
+  const labels = flattenAnswers(answers);
+  const text = labels.join(' ').trim();
+  if (!text) return { decision: 'changes_requested', note: '', answers: labels };
+  if (/(拒绝|取消|终止|不批准|不通过|reject|cancel|stop)/i.test(text)) {
+    return { decision: 'rejected', note: text, answers: labels };
+  }
+  if (/(批准|通过|同意|approve|approved)/i.test(text)) {
+    return { decision: 'approved', note: text, answers: labels };
+  }
+  return { decision: 'changes_requested', note: text, answers: labels };
 }
 
 function enforceTriageBeforeExecution(runtime, sessionID, kind, name, args) {
@@ -191,6 +189,79 @@ export function createRuntimeHooks(runtime) {
       if (event?.type === 'session.compacted' && event.properties?.info?.id) {
         audit(runtime, { type: 'session.compacted', sessionID: event.properties.info.id });
       }
+
+      if (event?.type === 'question.asked' && event.properties?.sessionID && event.properties?.id) {
+        const context = buildContext(runtime, event.properties.sessionID);
+        const state = loadState(context);
+        const blockedStage = state?.planningGate?.blockedStage;
+        if (
+          isLeaderManagedSession(state)
+          && state?.planningGate?.enabled
+          && blockedStage
+          && isPlanningDecisionQuestion(event.properties, blockedStage)
+        ) {
+          recordPlanningQuestion(
+            context,
+            event.properties.id,
+            blockedStage,
+            event.properties.questions || [],
+          );
+          audit(runtime, {
+            type: 'question.planning-asked',
+            sessionID: event.properties.sessionID,
+            requestID: event.properties.id,
+            blockedStage,
+          });
+        }
+      }
+
+      if (event?.type === 'question.replied' && event.properties?.sessionID && event.properties?.requestID) {
+        const context = buildContext(runtime, event.properties.sessionID);
+        const state = loadState(context);
+        const pending = (state?.planningGate?.pendingQuestions || [])
+          .find((item) => item?.requestID === event.properties.requestID);
+        const artifactType = pending?.kind || state?.planningGate?.blockedStage;
+        if (
+          isLeaderManagedSession(state)
+          && state?.planningGate?.enabled
+          && ['spec', 'plan'].includes(artifactType)
+        ) {
+          const decision = classifyPlanningQuestionDecision(event.properties.answers || []);
+          recordPlanningDecision(context, {
+            requestID: event.properties.requestID,
+            artifactType,
+            ...decision,
+          });
+          audit(runtime, {
+            type: 'question.planning-replied',
+            sessionID: event.properties.sessionID,
+            requestID: event.properties.requestID,
+            artifactType,
+            decision: decision.decision,
+          });
+        }
+      }
+
+      if (event?.type === 'question.rejected' && event.properties?.sessionID && event.properties?.requestID) {
+        const context = buildContext(runtime, event.properties.sessionID);
+        const state = loadState(context);
+        const pending = (state?.planningGate?.pendingQuestions || [])
+          .find((item) => item?.requestID === event.properties.requestID);
+        if (isLeaderManagedSession(state) && state?.planningGate?.enabled && pending?.kind) {
+          const decision = classifyPlanningQuestionDecision([], true);
+          recordPlanningDecision(context, {
+            requestID: event.properties.requestID,
+            artifactType: pending.kind,
+            ...decision,
+          });
+          audit(runtime, {
+            type: 'question.planning-rejected',
+            sessionID: event.properties.sessionID,
+            requestID: event.properties.requestID,
+            artifactType: pending.kind,
+          });
+        }
+      }
     },
 
     'chat.message': async (input, output) => {
@@ -215,7 +286,6 @@ export function createRuntimeHooks(runtime) {
 
     'tool.execute.before': async (input, output) => {
       const context = enforceTriageBeforeExecution(runtime, input.sessionID, 'tool', input.tool, output.args || {});
-      enforcePlanningGate(runtime, input.sessionID, 'tool', input.tool, output.args || {});
       const features = activeFeatures(runtime, input.sessionID);
       const args = output.args || {};
 
@@ -284,7 +354,6 @@ export function createRuntimeHooks(runtime) {
 
     'command.execute.before': async (input) => {
       enforceTriageBeforeExecution(runtime, input.sessionID, 'command', input.command, { arguments: input.arguments });
-      enforcePlanningGate(runtime, input.sessionID, 'command', input.command, { arguments: input.arguments });
       audit(runtime, {
         type: 'command.execute.before',
         sessionID: input.sessionID,
@@ -329,21 +398,6 @@ export function createRuntimeHooks(runtime) {
 
       const currentState = loadState(context);
       if (!isLeaderManagedSession(currentState)) return;
-
-      if (currentState?.planningGate?.enabled && currentState?.planningGate?.blockedStage) {
-        const planningOutputGate = classifyPlanningOutputGate(
-          output.text,
-          currentState.planningGate.blockedStage,
-        );
-        if (planningOutputGate.shouldRewrite) {
-          audit(runtime, {
-            type: 'completion.planning-output-blocked',
-            sessionID: input.sessionID,
-            blockedStage: currentState.planningGate.blockedStage,
-          });
-          output.text = buildPlanningGateBlockedMessage(currentState.planningGate.blockedStage);
-        }
-      }
 
       const features = activeFeatures(runtime, input.sessionID);
       const gateOptions = {

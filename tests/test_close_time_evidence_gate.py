@@ -89,6 +89,40 @@ class CloseTimeEvidenceGateTests(unittest.TestCase):
         self.assertTrue(result["allowed"])
         self.assertEqual([], result["missing"])
 
+    def test_close_gate_does_not_enforce_planning_gate(self):
+        module_url = (
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "evidence_gate.js"
+        ).as_uri()
+        output = self._run_node(
+            f"""
+            const mod = await import({json.dumps(module_url)});
+            const result = mod.evaluateCloseGate({{
+              phase: 'closable',
+              triage: {{ lane: 'standard', needsReviewer: false }},
+              planningGate: {{
+                enabled: true,
+                blockedStage: 'plan',
+                specStatus: 'approved',
+                planStatus: 'drafted',
+              }},
+              evidence: {{
+                triage: [{{ kind: 'triage' }}],
+                review: [],
+                verification: [{{ kind: 'verification', category: 'tests', status: 'passed' }}],
+                manual: [],
+                escalation: [],
+              }},
+              editedFiles: ['src/a.ts'],
+              verification: {{ status: 'passed', commands: [{{ category: 'tests' }}] }},
+              reviewer: {{ status: 'not_required' }},
+            }});
+            console.log(JSON.stringify(result));
+            """
+        )
+        result = json.loads(output)
+        self.assertTrue(result["allowed"])
+        self.assertNotIn("planning gate blocked at plan", result["missing"])
+
     def test_close_gate_allows_manual_verification(self):
         module_url = (
             self.repo_root / ".opencode" / "plugins" / "runtime" / "evidence_gate.js"
