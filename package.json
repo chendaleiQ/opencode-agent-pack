@@ -2,5 +2,8 @@
   "name": "do-the-thing",
   "version": "1.4.0",
   "type": "module",
-  "main": ".opencode/plugins/do-the-thing.js"
+  "main": ".opencode/plugins/do-the-thing.js",
+  "scripts": {
+    "opencode:dev:update": "bash scripts/opencode-dev-update.sh"
+  }
 }
