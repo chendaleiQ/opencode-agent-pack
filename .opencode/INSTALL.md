@@ -65,6 +65,36 @@ $env:DTT_PLUGIN_REF = 'v1.2.0'; irm https://raw.githubusercontent.com/chendaleiQ
 
 The installer replaces any existing `do-the-thing@...` entries, dedupes repeated entries, and leaves unrelated plugins unchanged.
 
+## Track a Development Branch Reliably
+
+If you want to test a remote development branch such as `dev`, using `#dev` directly may still hit a cached git dependency. To force OpenCode onto the latest remote `dev` commit, resolve the branch to its current commit SHA first and write that SHA into `opencode.json`.
+
+### macOS / Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/dev/install/opencode-dev-update.sh | bash
+```
+
+This script:
+
+1. resolves remote `dev` to the latest commit SHA
+2. reruns the normal OpenCode installer with `DTT_PLUGIN_REF=<resolved-sha>`
+3. updates `~/.config/opencode/opencode.json`
+
+Run it before starting OpenCode when you want the newest `dev` build.
+
+If you use a different branch, set `DTT_DEV_REF`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/dev/install/opencode-dev-update.sh | DTT_DEV_REF=my-branch bash
+```
+
+If you want one command for update + launch, add an alias like:
+
+```bash
+alias opencode-dev='curl -fsSL https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/dev/install/opencode-dev-update.sh | bash && opencode'
+```
+
 ## Uninstall
 
 Remove the `do-the-thing@...` entry from your `opencode.json`, then restart OpenCode.

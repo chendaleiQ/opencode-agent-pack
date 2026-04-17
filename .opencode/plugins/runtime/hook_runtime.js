@@ -32,6 +32,8 @@ import {
   recordLatestUserMessage,
   recordPlanningApproval,
   recordPlanningArtifact,
+  recordPlanningDecision,
+  recordPlanningQuestion,
   recordManualVerification,
   recordProtectedBlock,
   recordReviewerResult,
@@ -67,6 +69,49 @@ function isFileMutationTool(toolName) {
   return ['write', 'edit', 'multiedit', 'apply_patch'].includes(toolName);
 }
 
+function flattenQuestionText(args) {
+  const questions = Array.isArray(args?.questions) ? args.questions : [];
+  return questions.flatMap((question) => [
+    question?.header,
+    question?.question,
+    ...(Array.isArray(question?.options)
+      ? question.options.flatMap((option) => [option?.label, option?.description])
+      : []),
+  ]).filter(Boolean).join(' ');
+}
+
+function isPlanningDecisionQuestion(args, blockedStage) {
+  if (!blockedStage) return false;
+  const text = flattenQuestionText(args);
+  if (!text) return false;
+  const stagePattern = blockedStage === 'spec'
+    ? /(spec|规格)/i
+    : /(plan|计划|方案)/i;
+  const decisionPattern = /(批准|通过|同意|approve|approval|需要补充|补充|修改|调整|changes?|revise|拒绝|取消|reject|cancel)/i;
+  return stagePattern.test(text) && decisionPattern.test(text);
+}
+
+function flattenAnswers(answers = []) {
+  if (!Array.isArray(answers)) return [];
+  return answers.flatMap((answer) => (Array.isArray(answer) ? answer : [answer]))
+    .filter((item) => item != null && item !== '')
+    .map((item) => String(item));
+}
+
+function classifyPlanningQuestionDecision(answers = [], rejected = false) {
+  if (rejected) return { decision: 'rejected', note: 'question rejected', answers: [] };
+  const labels = flattenAnswers(answers);
+  const text = labels.join(' ').trim();
+  if (!text) return { decision: 'changes_requested', note: '', answers: labels };
+  if (/(拒绝|取消|终止|不批准|不通过|reject|cancel|stop)/i.test(text)) {
+    return { decision: 'rejected', note: text, answers: labels };
+  }
+  if (/(批准|通过|同意|approve|approved)/i.test(text)) {
+    return { decision: 'approved', note: text, answers: labels };
+  }
+  return { decision: 'changes_requested', note: text, answers: labels };
+}
+
 function isAllowedDuringPlanningGate(state, kind, name, args) {
   const blockedStage = state?.planningGate?.blockedStage || null;
   if (kind === 'command') return false;
@@ -83,6 +128,7 @@ function isAllowedDuringPlanningGate(state, kind, name, args) {
     if (filePaths.length === 0) return false;
     return filePaths.every((filePath) => planningArtifactKindForPath(filePath) === blockedStage);
   }
+  if (name === 'question') return isPlanningDecisionQuestion(args, blockedStage);
   if (name !== 'task') return false;
   const description = `${args?.description || ''} ${args?.prompt || ''}`.toLowerCase();
   const subagentType = String(args?.subagent_type || '').toLowerCase();
@@ -190,6 +236,79 @@ export function createRuntimeHooks(runtime) {
 
       if (event?.type === 'session.compacted' && event.properties?.info?.id) {
         audit(runtime, { type: 'session.compacted', sessionID: event.properties.info.id });
+      }
+
+      if (event?.type === 'question.asked' && event.properties?.sessionID && event.properties?.id) {
+        const context = buildContext(runtime, event.properties.sessionID);
+        const state = loadState(context);
+        const blockedStage = state?.planningGate?.blockedStage;
+        if (
+          isLeaderManagedSession(state)
+          && state?.planningGate?.enabled
+          && blockedStage
+          && isPlanningDecisionQuestion(event.properties, blockedStage)
+        ) {
+          recordPlanningQuestion(
+            context,
+            event.properties.id,
+            blockedStage,
+            event.properties.questions || [],
+          );
+          audit(runtime, {
+            type: 'question.planning-asked',
+            sessionID: event.properties.sessionID,
+            requestID: event.properties.id,
+            blockedStage,
+          });
+        }
+      }
+
+      if (event?.type === 'question.replied' && event.properties?.sessionID && event.properties?.requestID) {
+        const context = buildContext(runtime, event.properties.sessionID);
+        const state = loadState(context);
+        const pending = (state?.planningGate?.pendingQuestions || [])
+          .find((item) => item?.requestID === event.properties.requestID);
+        const artifactType = pending?.kind || state?.planningGate?.blockedStage;
+        if (
+          isLeaderManagedSession(state)
+          && state?.planningGate?.enabled
+          && ['spec', 'plan'].includes(artifactType)
+        ) {
+          const decision = classifyPlanningQuestionDecision(event.properties.answers || []);
+          recordPlanningDecision(context, {
+            requestID: event.properties.requestID,
+            artifactType,
+            ...decision,
+          });
+          audit(runtime, {
+            type: 'question.planning-replied',
+            sessionID: event.properties.sessionID,
+            requestID: event.properties.requestID,
+            artifactType,
+            decision: decision.decision,
+          });
+        }
+      }
+
+      if (event?.type === 'question.rejected' && event.properties?.sessionID && event.properties?.requestID) {
+        const context = buildContext(runtime, event.properties.sessionID);
+        const state = loadState(context);
+        const pending = (state?.planningGate?.pendingQuestions || [])
+          .find((item) => item?.requestID === event.properties.requestID);
+        if (isLeaderManagedSession(state) && state?.planningGate?.enabled && pending?.kind) {
+          const decision = classifyPlanningQuestionDecision([], true);
+          recordPlanningDecision(context, {
+            requestID: event.properties.requestID,
+            artifactType: pending.kind,
+            ...decision,
+          });
+          audit(runtime, {
+            type: 'question.planning-rejected',
+            sessionID: event.properties.sessionID,
+            requestID: event.properties.requestID,
+            artifactType: pending.kind,
+          });
+        }
       }
     },
 

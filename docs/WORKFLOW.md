@@ -77,10 +77,12 @@ When `needsPlan=true`, needsPlan=true requires spec before plan:
 - write the spec to `docs/dtt/specs/...`
 - keep the spec human-readable and ensure it is shown in chat
 - spec approval is required before plan
+- spec approval must be requested with the `question` tool using approve/change/reject options; free-form text approval is only a fallback
 - then `leader` runs `dtt-writing-plans`
 - write the plan to `docs/dtt/plans/...`
 - keep the plan human-readable and ensure it is shown in chat
 - plan approval is required before todo and before analyze/execute/review
+- plan approval must be requested with the `question` tool using approve/change/reject options; free-form text approval is only a fallback
 - both human-readable outputs and spec/plan documents follow current conversation language
 
 ## External Workflow Systems

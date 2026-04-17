@@ -49,6 +49,8 @@ irm https://raw.githubusercontent.com/chendaleiQ/do-the-thing/refs/heads/main/in
 
 To pin a specific ref during reinstall, set `DTT_PLUGIN_REF` first.
 
+For testing a remote development branch while avoiding stale git-plugin caches, use `install/opencode-dev-update.sh` from that branch to resolve the branch to its latest commit SHA before launching OpenCode.
+
 Detailed docs: [`.opencode/INSTALL.md`](./.opencode/INSTALL.md)
 
 ### Claude Code

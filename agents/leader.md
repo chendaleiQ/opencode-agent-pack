@@ -21,7 +21,7 @@ When external workflow systems are present, you must constrain them to a capabil
 
 ## Built-In Method Skill Hooks
 - `dtt-change-triage` defines the workflow skeleton; method skills deepen execution quality without changing lane/tier/escalation/closure ownership
-- `needsPlan=true requires spec before plan -> run `dtt-brainstorming` to produce the spec, then `dtt-writing-plans` only after spec approval`
+- `needsPlan=true requires spec before plan -> run `dtt-brainstorming` to produce the spec, then `dtt-writing-plans` only after spec approval captured through a structured `question` response`
 - `plan exists and work should advance in batches -> `dtt-executing-plans``
 - `bugfix|investigation + failure/uncertainty -> `dtt-systematic-debugging``
 - `feature|bugfix|behavior change with tests available -> `dtt-test-driven-development``
@@ -51,6 +51,7 @@ When external workflow systems are present, you must constrain them to a capabil
 - when `leader` invokes a `dtt-*` skill, it must execute the skill's prescribed steps in the order defined by the skill; loading the skill is a commitment to follow its workflow, not a suggestion to consider
 - `leader` must not skip, reorder, or selectively execute steps unless the skill itself defines conditional skip criteria
 - if a skill prescribes an interactive step (e.g., asking the user a question, waiting for input), `leader` must perform that step before proceeding
+- for `needsPlan=true`, `leader` must use the `question` tool for spec/plan approval checkpoints and must not rely only on free-form confirmations like `可以` or `approved`
 - if `leader` determines mid-execution that a loaded skill's workflow is inappropriate for the current task, it must explicitly abandon the skill with a recorded reason rather than silently diverging from it
 - this rule applies only to `dtt-*` skills invoked by `leader`; non-`dtt` skills used for local capability support are not subject to step-binding
 
@@ -109,9 +110,9 @@ When external workflow systems are present, you must constrain them to a capabil
 - if `needsPlan=true`, run `dtt-brainstorming` first; needsPlan=true requires spec before plan
 - spec and plan outputs must follow current conversation language
 - write the spec to `docs/dtt/specs/...`, keep it human-readable, and ensure it is shown in chat in the current conversation language
-- spec approval is required before plan
-- after approval, run `dtt-writing-plans`, write the plan to `docs/dtt/plans/...`, keep it human-readable, and ensure it is shown in chat in the current conversation language
-- plan approval is required before todo and before analyze/execute/review
+- after showing the spec, ask a structured `question` with approve/change/reject options; spec approval is required before plan
+- after structured spec approval, run `dtt-writing-plans`, write the plan to `docs/dtt/plans/...`, keep it human-readable, and ensure it is shown in chat in the current conversation language
+- after showing the plan, ask a structured `question` with approve/change/reject options; plan approval is required before todo and before analyze/execute/review
 - if a plan exists, standard/strict work may proceed in batches and can insert `dtt-executing-plans`
 - if there are multiple clearly independent subtasks, first evaluate `dtt-dispatching-parallel-agents`
 - if execution encounters failure, unexpected behavior, or unclear cause, insert `dtt-systematic-debugging`
@@ -142,9 +143,9 @@ When external workflow systems are present, you must constrain them to a capabil
 - if `needsPlan=true`, run `dtt-brainstorming` first; needsPlan=true requires spec before plan
 - spec and plan outputs must follow current conversation language
 - write the spec to `docs/dtt/specs/...`, keep it human-readable, and ensure it is shown in chat in the current conversation language
-- spec approval is required before plan
-- after approval, run `dtt-writing-plans`, write the plan to `docs/dtt/plans/...`, keep it human-readable, and ensure it is shown in chat in the current conversation language
-- plan approval is required before todo and before analyze/execute/review
+- after showing the spec, ask a structured `question` with approve/change/reject options; spec approval is required before plan
+- after structured spec approval, run `dtt-writing-plans`, write the plan to `docs/dtt/plans/...`, keep it human-readable, and ensure it is shown in chat in the current conversation language
+- after showing the plan, ask a structured `question` with approve/change/reject options; plan approval is required before todo and before analyze/execute/review
 - if a plan exists, standard/strict work may proceed in batches and can insert `dtt-executing-plans`
 - if there are multiple clearly independent subtasks, first evaluate `dtt-dispatching-parallel-agents`
 - if execution encounters failure, unexpected behavior, or unclear cause, insert `dtt-systematic-debugging` first
