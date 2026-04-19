@@ -8,3 +8,4 @@ __pycache__/
 .opencode/bun.lock
 .opencode/.gitignore
 .DS_Store
+.omx/

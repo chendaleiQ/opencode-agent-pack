@@ -1,3 +1,11 @@
+import {
+  PLANNING_ARTIFACT_FIELD,
+  PLANNING_ARTIFACT_KINDS,
+  REVIEWER_REQUIRED_FIELDS,
+  TRIAGE_REQUIRED_FIELDS,
+  hasRequiredFields,
+} from './workflow_contract.js';
+
 const PROTECTED_CONFIG_PATTERNS = [
   /(^|\/)eslint\.config\.(js|cjs|mjs)$/i,
   /(^|\/)\.eslintrc(\.(js|cjs|json|yaml|yml))?$/i,
@@ -32,36 +40,25 @@ function tryParseObject(text) {
 export function parseTriageFromText(text) {
   const parsed = tryParseObject(text);
   if (!parsed) return null;
-  if (!parsed.lane || !parsed.complexity || !parsed.risk || !parsed.finalApprovalTier) return null;
+  if (!hasRequiredFields(parsed, TRIAGE_REQUIRED_FIELDS)) return null;
   return parsed;
 }
 
 export function parseReviewerFromText(text) {
   const parsed = tryParseObject(text);
   if (!parsed) return null;
-  if (!parsed.specCompliance || !parsed.codeQuality) return null;
+  if (!hasRequiredFields(parsed, REVIEWER_REQUIRED_FIELDS)) return null;
   return parsed;
 }
 
 export function parsePlanningArtifactFromText(text) {
   const parsed = tryParseObject(text);
   if (!parsed) return null;
-  if (!['spec', 'plan'].includes(parsed.planningArtifact)) return null;
+  if (!PLANNING_ARTIFACT_KINDS.includes(parsed[PLANNING_ARTIFACT_FIELD])) return null;
   return {
-    kind: parsed.planningArtifact,
+    kind: parsed[PLANNING_ARTIFACT_FIELD],
     summary: parsed.summary || parsed.description || '',
   };
-}
-
-export function isPlanningApprovalMessage(text) {
-  if (!text) return false;
-  const normalized = String(text).trim();
-  const isExplicitApproval = /(批准|通过|同意|approve|approved)/i.test(normalized);
-  const isShortConfirmation = /^(可以|继续)[。.!！\s]*$/u.test(normalized);
-  if (!isExplicitApproval && !isShortConfirmation) return false;
-  if (/(如果|要是|若|如|等|等到|完成后|之后再|以后再|once\b|after\b|when\b|until\b|if\b|then\b)/i.test(normalized)) return false;
-  if (/(不批准|不能批准|未批准|暂不批准|还不能批准|不同意|不通过|未通过|暂不通过|还不能通过|not approved|not approve|cannot approve|won't approve|would approve if)/i.test(normalized)) return false;
-  return true;
 }
 
 export function isProtectedConfigPath(filePath) {
@@ -264,6 +261,55 @@ export function parseVerificationFailureFromText(text) {
   if (/(verification failed|tests failed|lint failed|typecheck failed|build failed|验证失败|测试失败|类型检查失败)/i.test(text)) {
     return text.slice(0, 500);
   }
+  return null;
+}
+
+function parseNonZeroExitCode(value) {
+  if (typeof value === 'number' && Number.isFinite(value) && value !== 0) return value;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!/^-?\d+$/.test(trimmed)) return null;
+  const parsed = Number.parseInt(trimmed, 10);
+  return parsed !== 0 ? parsed : null;
+}
+
+function metadataFailureReason(metadata = {}) {
+  const codeKeys = ['exitCode', 'exit_code', 'code', 'statusCode', 'status_code', 'returnCode', 'return_code'];
+  for (const key of codeKeys) {
+    const parsed = parseNonZeroExitCode(metadata?.[key]);
+    if (parsed != null) return `verification failed (exit code ${parsed})`;
+  }
+
+  const falseKeys = ['ok', 'success'];
+  for (const key of falseKeys) {
+    if (metadata?.[key] === false) return `verification failed (${key}=false)`;
+  }
+
+  const stringKeys = ['status', 'result', 'state'];
+  for (const key of stringKeys) {
+    const value = metadata?.[key];
+    if (typeof value === 'string' && /(fail|failed|error|errored|exception|timed out|timeout|non[- ]?zero)/i.test(value)) {
+      return `verification failed (${key}: ${value})`.slice(0, 500);
+    }
+  }
+
+  return null;
+}
+
+export function parseVerificationFailureFromToolResult(output = {}) {
+  const metadata = output?.metadata && typeof output.metadata === 'object' ? output.metadata : {};
+  const metadataReason = metadataFailureReason(metadata);
+  if (metadataReason) return metadataReason;
+
+  const textReason = parseVerificationFailureFromText([
+    output?.title,
+    output?.output,
+    metadata?.error,
+    metadata?.stderr,
+    metadata?.stdout,
+  ].filter(Boolean).join('\n'));
+  if (textReason) return textReason;
+
   return null;
 }
 

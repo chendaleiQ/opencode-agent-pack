@@ -4,8 +4,13 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
+from tools.workflow_contract import (
+    provider_policy_allowed_providers_field,
+    provider_policy_namespace,
+)
 
-SETTINGS_NAMESPACE = "doTheThing"
+SETTINGS_NAMESPACE = provider_policy_namespace()
+ALLOWED_PROVIDERS_FIELD = provider_policy_allowed_providers_field()
 
 
 def _load_json_obj(path: Path) -> Dict[str, Any]:
@@ -95,16 +100,16 @@ def read_allowed_providers(settings_obj: Dict[str, Any]) -> List[str]:
         raise SystemExit(
             f"invalid settings.json: expected {SETTINGS_NAMESPACE} to be a JSON object"
         )
-    if "allowedProviders" not in pack_obj:
+    if ALLOWED_PROVIDERS_FIELD not in pack_obj:
         return []
-    raw = pack_obj.get("allowedProviders")
+    raw = pack_obj.get(ALLOWED_PROVIDERS_FIELD)
     if not isinstance(raw, list):
         raise SystemExit(
-            "invalid settings.json: expected allowedProviders to be a JSON array"
+            f"invalid settings.json: expected {ALLOWED_PROVIDERS_FIELD} to be a JSON array"
         )
     if any(not isinstance(item, str) or not item for item in raw):
         raise SystemExit(
-            "invalid settings.json: expected allowedProviders entries to be non-empty strings"
+            f"invalid settings.json: expected {ALLOWED_PROVIDERS_FIELD} entries to be non-empty strings"
         )
     return list(raw)
 
@@ -117,7 +122,7 @@ def has_explicit_allowed_providers(settings_obj: Dict[str, Any]) -> bool:
         raise SystemExit(
             f"invalid settings.json: expected {SETTINGS_NAMESPACE} to be a JSON object"
         )
-    return "allowedProviders" in pack_obj
+    return ALLOWED_PROVIDERS_FIELD in pack_obj
 
 
 def merge_allowed_providers(
@@ -129,7 +134,7 @@ def merge_allowed_providers(
         pack_obj = {}
     else:
         pack_obj = dict(pack_obj)
-    pack_obj["allowedProviders"] = list(allowed)
+    pack_obj[ALLOWED_PROVIDERS_FIELD] = list(allowed)
     merged[SETTINGS_NAMESPACE] = pack_obj
     return merged
 
@@ -147,16 +152,16 @@ def _validate_settings_shape(settings_obj: Dict[str, Any]) -> None:
         raise SystemExit(
             f"invalid settings.json: expected {SETTINGS_NAMESPACE} to be a JSON object"
         )
-    if "allowedProviders" not in pack_obj:
+    if ALLOWED_PROVIDERS_FIELD not in pack_obj:
         return
-    allowed = pack_obj.get("allowedProviders")
+    allowed = pack_obj.get(ALLOWED_PROVIDERS_FIELD)
     if not isinstance(allowed, list):
         raise SystemExit(
-            "invalid settings.json: expected allowedProviders to be a JSON array"
+            f"invalid settings.json: expected {ALLOWED_PROVIDERS_FIELD} to be a JSON array"
         )
     if any(not isinstance(item, str) or not item for item in allowed):
         raise SystemExit(
-            "invalid settings.json: expected allowedProviders entries to be non-empty strings"
+            f"invalid settings.json: expected {ALLOWED_PROVIDERS_FIELD} entries to be non-empty strings"
         )
 
 

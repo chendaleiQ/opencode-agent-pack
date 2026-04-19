@@ -9,14 +9,24 @@ class EvalRegressionSkeletonTests(unittest.TestCase):
     def test_eval_cases_cover_core_lane_and_escalation_scenarios(self):
         cases_dir = self.repo_root / "evals" / "cases"
         expected = [
+            "ambiguous-high-impact-task-enters-strict.md",
+            "chat-only-misuse-workflow-trigger.md",
+            "estimated-files-distortion-detected.md",
+            "final-approval-tier-must-remain-top.md",
+            "final-summary-metadata-required-before-close.md",
+            "implementer-instability-must-escalate.md",
             "quick-doc-typo-implementer-only.md",
             "quick-investigation-analyzer-only.md",
             "quick-review-reviewer-only.md",
             "quick-to-guarded-auth-escalation.md",
+            "reviewer-recommends-escalation-must-upgrade.md",
+            "scope-expansion-standard-to-strict-escalation.md",
             "standard-feature-plan-and-batches.md",
             "standard-structured-spec-question-approval.md",
             "standard-structured-plan-question-feedback.md",
+            "strict-needs-plan-structured-approvals.md",
             "strict-db-migration-destructive.md",
+            "strict-reviewer-cannot-close-blocks-final.md",
             "verification-failure-must-escalate.md",
         ]
 

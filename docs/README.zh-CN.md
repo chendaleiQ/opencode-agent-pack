@@ -14,7 +14,7 @@ do-the-thing 是一个单入口的 agent workflow plugin。
 - OpenCode：已支持，含 `agent router`
 - Claude Code：coming soon
 - Cursor：coming soon
-- Codex：coming soon
+- Codex：部分支持（仅 `dtt-*` skills；不含单入口路由工作流）
 
 ## 工作方式
 - 默认入口：`leader`
@@ -55,7 +55,11 @@ coming soon
 
 ### Codex
 
-coming soon
+Codex 已支持一条命令安装内置 `dtt-*` skills。
+但当前版本**不包含**完整的 `leader` → `analyzer` / `implementer` / `reviewer`
+单入口编排工作流。
+
+详细说明：[`../.codex/INSTALL.md`](../.codex/INSTALL.md)
 
 ### 验证安装
 
