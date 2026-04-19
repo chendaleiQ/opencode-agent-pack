@@ -2,6 +2,13 @@ import fs from 'fs';
 
 import { latestStatePath, sessionStatePath } from './paths.js';
 import { profileFromLane } from './profiles.js';
+import {
+  createPlanningGate,
+  deriveBlockedStage,
+  normalizePlanningGate,
+  removePendingQuestion,
+  summarizeQuestions,
+} from './state_store_planning.js';
 
 function now() {
   return new Date().toISOString();
@@ -21,50 +28,6 @@ function evidenceEntry(kind, payload = {}) {
     kind,
     ...payload,
   };
-}
-
-function createPlanningGate(enabled = false) {
-  return {
-    enabled,
-    blockedStage: enabled ? 'spec' : null,
-    specStatus: enabled ? 'required' : 'not_required',
-    planStatus: enabled ? 'required' : 'not_required',
-    specArtifacts: [],
-    planArtifacts: [],
-    approvals: [],
-    decisions: [],
-    pendingQuestions: [],
-  };
-}
-
-function deriveBlockedStage(planningGate) {
-  if (!planningGate?.enabled) return null;
-  if (planningGate.specStatus !== 'approved') return 'spec';
-  if (planningGate.planStatus !== 'approved') return 'plan';
-  return null;
-}
-
-function normalizePlanningGate(planningGate, needsPlan = false) {
-  const base = createPlanningGate(Boolean(needsPlan));
-  const next = {
-    ...base,
-    ...(planningGate || {}),
-    enabled: Boolean(needsPlan || planningGate?.enabled),
-    specArtifacts: Array.isArray(planningGate?.specArtifacts) ? planningGate.specArtifacts : [],
-    planArtifacts: Array.isArray(planningGate?.planArtifacts) ? planningGate.planArtifacts : [],
-    approvals: Array.isArray(planningGate?.approvals) ? planningGate.approvals : [],
-    decisions: Array.isArray(planningGate?.decisions) ? planningGate.decisions : [],
-    pendingQuestions: Array.isArray(planningGate?.pendingQuestions) ? planningGate.pendingQuestions : [],
-  };
-
-  if (!next.enabled) {
-    return createPlanningGate(false);
-  }
-
-  if (!next.specStatus || next.specStatus === 'not_required') next.specStatus = 'required';
-  if (!next.planStatus || next.planStatus === 'not_required') next.planStatus = 'required';
-  next.blockedStage = deriveBlockedStage(next);
-  return next;
 }
 
 export function hasValidTriage(state) {
@@ -330,21 +293,6 @@ export function recordPlanningApproval(context, artifactType, note) {
   });
 }
 
-function summarizeQuestions(questions = []) {
-  return questions.map((question) => ({
-    header: question?.header || '',
-    question: question?.question || '',
-    options: Array.isArray(question?.options)
-      ? question.options.map((option) => option?.label || '').filter(Boolean)
-      : [],
-  }));
-}
-
-function removePendingQuestion(pendingQuestions = [], requestID) {
-  if (!requestID) return pendingQuestions;
-  return pendingQuestions.filter((item) => item?.requestID !== requestID);
-}
-
 export function recordPlanningQuestion(context, requestID, artifactType, questions = []) {
   return updateState(context, (state) => {
     state.planningGate = normalizePlanningGate(state.planningGate, state.triage?.needsPlan);
@@ -597,18 +545,36 @@ export function recordManualVerification(context, note) {
   });
 }
 
-export function recordVerificationFailure(context, note) {
+export function recordVerificationFailure(context, category, command, title, note) {
   return updateState(context, (state) => {
+    const normalizedCategory = category || state.verification.pendingCommand?.category || 'unknown';
+    const normalizedCommand = command || state.verification.pendingCommand?.command || '';
+    const normalizedTitle = title || 'verification failed';
+    const normalizedNote = note || 'verification failed';
     state.verification.status = 'failed';
     state.verification.pendingCommand = null;
     state.verification.lastRunAt = now();
-    state.verification.manualChecks = [...state.verification.manualChecks, { note: `FAILED: ${note}`, at: now() }].slice(-10);
+    state.verification.categories = appendUnique(state.verification.categories, normalizedCategory);
+    state.verification.commands = [
+      ...state.verification.commands,
+      {
+        category: normalizedCategory,
+        command: normalizedCommand,
+        title: normalizedTitle,
+        note: normalizedNote,
+        status: 'failed',
+        at: now(),
+      },
+    ].slice(-20);
+    state.verification.manualChecks = [...state.verification.manualChecks, { note: `FAILED: ${normalizedNote}`, at: now() }].slice(-10);
     state.evidence.verification = [
       ...state.evidence.verification,
       evidenceEntry('verification', {
         status: 'failed',
-        category: 'unknown',
-        note,
+        category: normalizedCategory,
+        command: normalizedCommand,
+        title: normalizedTitle,
+        note: normalizedNote,
       }),
     ].slice(-20);
     state.phase = 'verifying';

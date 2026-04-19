@@ -14,7 +14,7 @@ Install it once, start with `leader`, and let the system handle triage, delegati
 - OpenCode: supported, including `agent router`
 - Claude Code: coming soon
 - Cursor: coming soon
-- Codex: coming soon
+- Codex: partial support (`dtt-*` skills only; no single-entry routed workflow)
 
 ## How It Works
 - Default entry: `leader`
@@ -63,7 +63,11 @@ coming soon
 
 ### Codex
 
-coming soon
+Codex supports one-command installation for the pack's built-in `dtt-*` skills.
+It does **not** install the full `leader` → `analyzer` / `implementer` / `reviewer`
+single-entry workflow in this release.
+
+Details: [`.codex/INSTALL.md`](./.codex/INSTALL.md)
 
 ### Verify Installation
 

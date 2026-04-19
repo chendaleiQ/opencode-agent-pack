@@ -47,7 +47,8 @@ class PlatformInstallDocsTests(unittest.TestCase):
         self.assertIn("install.sh | bash -s -- opencode", content)
         self.assertIn("Install-DoTheThing opencode", content)
         self.assertIn("### Codex", content)
-        self.assertIn("coming soon", content)
+        self.assertIn("partial support", content)
+        self.assertIn(".codex/INSTALL.md", content)
 
     def test_platform_install_docs_use_installer_not_fetch_and_follow(self):
         docs = [
@@ -147,7 +148,9 @@ class PlatformInstallDocsTests(unittest.TestCase):
             return remainder
 
         self.assertIn("One-command native install.", readme_section("OpenCode"))
-        self.assertIn("coming soon", readme_section("Codex"))
+        self.assertIn("one-command installation", readme_section("Codex"))
+        self.assertIn("skills", readme_section("Codex"))
+        self.assertIn("does **not** install the full", readme_section("Codex"))
         self.assertIn("coming soon", readme_section("Cursor"))
         self.assertIn("coming soon", readme_section("Claude Code"))
         self.assertIn("Codex uses one-command install.", codex)
@@ -588,12 +591,13 @@ class PlatformInstallDocsTests(unittest.TestCase):
             "Codex",
             "Cursor",
             "coming soon",
+            "partial support",
             "repository `main` branch",
         ]:
             self.assertIn(token, readme)
         self.assertIn("一条命令原生安装", zh)
         self.assertIn("Claude Code：coming soon", zh)
-        self.assertIn("Codex：coming soon", zh)
+        self.assertIn("Codex：部分支持", zh)
         self.assertIn("Cursor：coming soon", zh)
         self.assertIn("仓库 `main` 分支", zh)
 

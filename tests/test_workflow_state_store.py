@@ -159,6 +159,34 @@ class WorkflowStateStoreTests(unittest.TestCase):
         verification = json.loads(output)
         self.assertEqual("stale", verification["status"])
 
+    def test_failed_verification_records_failed_command_and_evidence(self):
+        module_url = (
+            self.repo_root / ".opencode" / "plugins" / "runtime" / "state_store.js"
+        ).as_uri()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = self._run_node(
+                f"""
+                const mod = await import({json.dumps(module_url)});
+                const context = {{ configDir: {json.dumps(tmpdir)}, projectKey: 'proj-a', sessionID: 'sess-1' }};
+                mod.recordVerificationStart(context, 'tests', 'npm test');
+                mod.recordVerificationFailure(context, 'tests', 'npm test', 'npm test', 'verification failed (exit code 1)');
+                const state = mod.loadState(context);
+                console.log(JSON.stringify({{
+                  verification: state.verification,
+                  evidence: state.evidence.verification,
+                }}));
+                """
+            )
+        payload = json.loads(output)
+        verification = payload["verification"]
+        self.assertEqual("failed", verification["status"])
+        self.assertIsNone(verification["pendingCommand"])
+        self.assertIn("tests", verification["categories"])
+        self.assertEqual("failed", verification["commands"][0]["status"])
+        self.assertEqual("tests", verification["commands"][0]["category"])
+        self.assertEqual("failed", payload["evidence"][0]["status"])
+        self.assertEqual("tests", payload["evidence"][0]["category"])
+
     def test_state_records_typed_evidence_entries(self):
         module_url = (
             self.repo_root / ".opencode" / "plugins" / "runtime" / "state_store.js"
