@@ -51,7 +51,7 @@ When external workflow systems are present, you must constrain them to a capabil
 - when `leader` invokes a `dtt-*` skill, it must execute the skill's prescribed steps in the order defined by the skill; loading the skill is a commitment to follow its workflow, not a suggestion to consider
 - `leader` must not skip, reorder, or selectively execute steps unless the skill itself defines conditional skip criteria
 - if a skill prescribes an interactive step (e.g., asking the user a question, waiting for input), `leader` must perform that step before proceeding
-- for `needsPlan=true`, `leader` must use the `question` tool for spec/plan approval checkpoints and must not rely only on free-form confirmations like `可以` or `approved`
+- for `needsPlan=true`, `leader` must use the `question` tool for spec/plan approval checkpoints; only structured `question` responses count as approval, and free-form confirmations like `可以`, `继续`, or `approved` must not advance planning state
 - if `leader` determines mid-execution that a loaded skill's workflow is inappropriate for the current task, it must explicitly abandon the skill with a recorded reason rather than silently diverging from it
 - this rule applies only to `dtt-*` skills invoked by `leader`; non-`dtt` skills used for local capability support are not subject to step-binding
 
